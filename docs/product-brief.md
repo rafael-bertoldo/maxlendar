@@ -16,18 +16,21 @@ The user wants to access the same calendar on different devices without repeated
 
 - A person who wants a lightweight personal calendar available on multiple devices.
 - The initial product is intended as a portfolio project, not a commercial service.
-- The product is a portfolio project, not a commercial service, and is not intended for sensitive personal data.
+- The product is not intended for sensitive personal data.
 
 ## MVP decisions
 
 ### Technology and architecture direction
 
-- Backend: Node.js.
+- Backend: Node.js with NestJS.
+- Language: TypeScript on both backend and frontend.
+- ORM: Prisma.
+- Database: SQLite; the user does not expect the MVP to scale.
 - Frontend: React with TypeScript; Next.js is not required.
 - The user wants a solid architecture informed by Clean Architecture and SOLID principles.
 - The frontend should use an atomic or component-based organization.
 - Use CQRS only if it solves a concrete need for this product; it is not a requirement by itself.
-- Specific frameworks, database, hosting, AI provider, and detailed component boundaries remain for architecture evaluation.
+- Hosting, AI provider, and detailed component boundaries remain for architecture evaluation.
 
 ### Access and synchronization
 

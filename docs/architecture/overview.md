@@ -1,11 +1,15 @@
 # Proposed Architecture Overview
 
-**Status:** Proposal for discussion; not an implementation decision  
+**Status:** Architecture proposal; backend framework and database selected by the user  
 **Based on:** [Product brief](../product-brief.md)
 
 ## User-selected constraints
 
 - Backend runtime: Node.js.
+- Backend framework: NestJS.
+- Backend language: TypeScript.
+- Database: SQLite; the user does not plan to scale the MVP.
+- ORM: Prisma.
 - Frontend: React with TypeScript; Next.js is not required.
 - Keep the architecture solid and understandable for a portfolio. Apply Clean Architecture and SOLID where they reduce coupling or clarify responsibilities. Use CQRS only where it is justified.
 - Prefer a component-based frontend organization; Atomic Design may be used as a vocabulary for reusable UI, not as a rigid folder taxonomy.
@@ -13,20 +17,26 @@
 
 ## Recommendation
 
-Start with a **TypeScript modular monolith**: one React PWA, one Node.js API, one relational database, and a separately runnable reminder worker from the same backend codebase. Keep deployment units few and modules explicit. Do not introduce microservices, event sourcing, a distributed queue, or a separate read database for the MVP.
+Use a **TypeScript modular monolith**: one React PWA and one NestJS application backed by a SQLite database file on persistent storage. Run the durable reminder scheduler inside the same NestJS process. Keep deployment simple: one always-on application instance, one persistent volume, and a backup plan. Do not add a separate worker process, microservices, event sourcing, Redis, an external queue, or a separate read database for the MVP.
 
-Use Clean Architecture pragmatically in the backend: domain rules do not depend on HTTP, database, AI provider, or push provider details. Organize around product modules first, and use ports/adapters at boundaries where provider or infrastructure changes are plausible.
+Use NestJS modules as feature boundaries and apply Clean Architecture pragmatically: domain rules do not depend on HTTP, SQLite, AI provider, or push provider details. Organize around product modules first, and use ports/adapters at boundaries where provider or infrastructure changes are plausible.
+
+## Backend framework
+
+**NestJS with TypeScript is selected by the user.** Its modules and providers support the requested structured, SOLID-informed backend. NestJS does not guarantee Clean Architecture: keep domain types and application rules independent of Nest decorators and HTTP concerns. Use Nest providers/controllers at the delivery and composition edges.
+
+Do not add the Nest CQRS package for the initial CRUD calendar. Keep readable application commands and queries inside feature modules; reconsider CQRS only if read/write workflows materially diverge.
 
 ## System shape
 
 ```mermaid
 flowchart LR
-  PWA[React + TypeScript PWA] -->|HTTPS API| API[Node.js API]
+  PWA[React + TypeScript PWA] -->|HTTPS API| API[NestJS modular monolith]
   PWA -->|Push subscription| API
   PWA -->|SSE or refresh signal| API
-  API --> DB[(Relational database)]
-  Worker[Reminder worker] --> DB
-  Worker --> Push[Web Push service]
+  API --> DB[(SQLite on persistent volume)]
+  Scheduler[In-process reminder scheduler] --> DB
+  Scheduler --> Push[Web Push service]
   API --> AI[AI provider adapter]
   Push --> PWA
 ```
@@ -47,10 +57,10 @@ Within a module, use these layers only where useful:
 
 1. **Domain:** entities, value types, and business invariants. Keep framework-free.
 2. **Application:** use cases/commands/queries and ports (repositories, clock, AI, push, transaction boundary).
-3. **Infrastructure:** database repositories, password hashing, AI and Web Push adapters, background worker.
+3. **Infrastructure:** database repositories, password hashing, AI and Web Push adapters, in-process reminder scheduler.
 4. **Delivery:** HTTP controllers, request/response schemas, authentication middleware, and event stream endpoints.
 
-Keep this as one deployable API initially. The reminder worker can be a second process using the same application and infrastructure modules; it should not become a separate service until load or operations justify that split.
+Keep this as one deployable NestJS process. The reminder scheduler is a Nest provider/module that periodically claims due rows from SQLite and sends push notifications. It must not use per-event in-memory timers; a process restart should recover work from durable reminder rows. Avoid a second process against the same SQLite file: it adds deployment and locking complexity without MVP value.
 
 ## Frontend organization
 
@@ -75,7 +85,11 @@ Within `shared/ui`, Atomic Design labels can help describe reusable visual compl
 
 ## Data and time model
 
-A relational database is a good initial fit for unique usernames, ownership constraints, event edits, reminder idempotency, and transaction boundaries. PostgreSQL is a reasonable first-choice proposal, subject to deployment constraints; avoid locking a vendor or managed-hosting provider at this stage.
+**SQLite with Prisma ORM is selected by the user** because the MVP is not expected to scale. Target Prisma ORM v7 for SQLite: the official v7 documentation supports local SQLite files and migrations, while Prisma ORM 8 currently marks SQLite experimental. Recheck release status when dependencies are selected. [Prisma ORM v7 SQLite documentation](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/sqlite) [Prisma ORM supported databases](https://www.prisma.io/docs/orm/supported-databases)
+
+SQLite fits a small relational calendar and keeps deployment simple, provided it runs as a single application instance with a persistent disk and regular backups. SQLite supports concurrent readers but serializes writes; keep write transactions short, handle a busy/locked result with bounded retry, and avoid multiple app instances or a separate reminder worker sharing the file. Do not host the database on an ephemeral filesystem or a network filesystem without validating its locking/durability semantics.
+
+The SQLite driver adapter and hosting provider are not selected. Use Prisma migrations from the first data-bearing increment and select an adapter with transaction support that works in the target runtime.
 
 Candidate entities:
 
@@ -114,7 +128,9 @@ Store passwords only as an adaptive password hash using a maintained password-ha
 
 ## Reminder delivery
 
-Do not schedule reminders with in-memory timers inside API requests; process restarts would lose them. When an event is created or rescheduled, transactionally upsert two durable `ReminderDelivery` records (10 minutes and 1 minute before). On deletion, cancel pending deliveries. A worker claims due rows safely, sends Web Push, and records the outcome. Use an idempotency key and a claim/lease or row-locking strategy so retries and multiple worker instances do not create duplicate sends.
+Do not schedule reminders with per-event in-memory timers; process restarts would lose them. When an event is created or rescheduled, transactionally upsert two durable `ReminderDelivery` rows (10 minutes and 1 minute before). On deletion, cancel pending deliveries. A single in-process scheduler polls for due rows, claims one in a short SQLite transaction, sends Web Push outside the transaction, then records the outcome. Use a unique event/offset key and bounded retries; with SQLite and one app instance, no external queue or distributed lock is needed.
+
+Delivery is at-least-once in rare crash windows (for example, the process can stop after a push is accepted but before the row is marked sent), so a duplicate push cannot be ruled out. Keep this limitation visible rather than introducing queue infrastructure for the MVP.
 
 If an event is created or edited after one or both reminder times have passed, define whether past reminders are skipped; recommended MVP behavior is to schedule only future reminders. Delivery remains best-effort: subscriptions expire, users can revoke permission, and browsers/platforms differ. Surface permission and delivery state clearly; do not claim guaranteed delivery.
 
@@ -139,22 +155,21 @@ Do not choose a provider, model, prompt orchestration framework, or retrieval sy
 
 ## Decisions to defer
 
-- Node HTTP framework and TypeScript configuration for the backend.
-- Relational database and hosting/deployment provider.
+- SQLite driver adapter and migration workflow details.
+- Hosting/deployment provider; it must supply an always-on process, persistent disk, and backup path.
 - AI provider/model and how representative quality examples will be evaluated.
 - Web Push provider configuration, browser support matrix, and notification permission-denied UX.
 - Final cross-time-zone display and daylight-saving behavior.
-- Session lifetime policy beyond the user's current preference; localStorage vs cookie is not an open preference but a technical proposal requiring review.
+- The user-selected session behavior is no automatic expiry with independent logout per device. Any proposed change to expiry behavior needs a product decision; the mechanism for secure persistence still requires architecture review.
 - Whether synchronization must be immediate (SSE) or can refresh on app focus.
 - Username normalization, length, allowed characters, and rate limits.
 
-## Suggested Architecture Decision Records
+## Architecture Decision Records
 
-Create an ADR under `docs/decisions/` when the corresponding option is chosen:
+The user-selected backend framework and database are recorded in:
 
-1. Backend framework, TypeScript, and modular monolith structure.
-2. Database and durable reminder scheduling approach.
-3. Persistent per-device session mechanism and no-expiry trade-off.
-4. Time-zone storage and cross-device display rules.
-5. PWA/Web Push and live synchronization strategy.
-6. AI provider and constrained assistant interaction design.
+- [`0001-nestjs-backend.md`](../decisions/0001-nestjs-backend.md)
+- [`0002-sqlite-database.md`](../decisions/0002-sqlite-database.md)
+- [`0003-prisma-orm.md`](../decisions/0003-prisma-orm.md)
+
+Create further ADRs if implementation requires a decision on sessions, time-zone semantics, push/synchronization, or the AI provider.
