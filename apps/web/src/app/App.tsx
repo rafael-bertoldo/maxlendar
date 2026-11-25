@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SignupForm } from '../features/auth/SignupForm';
 import { SigninForm } from '../features/auth/SigninForm';
 import { AuthSuccess } from '../features/auth/AuthSuccess';
@@ -11,9 +11,88 @@ export function App() {
   const [authenticatedUsername, setAuthenticatedUsername] = useState<string | null>(null);
   const [authOutcome, setAuthOutcome] = useState<AuthOutcome>('created');
   const [signinUsername, setSigninUsername] = useState('');
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionCheckError, setSessionCheckError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function restoreSession() {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          const body = (await response.json()) as { user?: { username: string } };
+          if (body.user?.username) {
+            setAuthenticatedUsername(body.user.username);
+            setAuthOutcome('signed-in');
+          }
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setSessionCheckError('Não foi possível verificar sua sessão. Entre novamente para continuar.');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsCheckingSession(false);
+        }
+      }
+    }
+
+    void restoreSession();
+    return () => controller.abort();
+  }, []);
+
+  function handleAuthenticated(username: string, outcome: AuthOutcome) {
+    setAuthOutcome(outcome);
+    setAuthenticatedUsername(username);
+    setSessionCheckError(null);
+    setIsCheckingSession(false);
+  }
+
+  async function handleSignOut() {
+    if (!authenticatedUsername) return;
+
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Sign out failed');
+      }
+
+      setSigninUsername(authenticatedUsername);
+      setMode('signin');
+      setAuthenticatedUsername(null);
+      setAuthOutcome('signed-in');
+    } catch {
+      throw new Error('Não foi possível sair da conta. Tente novamente.');
+    }
+  }
+
+  if (isCheckingSession) {
+    return (
+      <main className="success-layout" aria-busy="true" aria-live="polite">
+        <div className="auth-card success-card session-loading">
+          <div className="loading-indicator" aria-hidden="true" />
+          <p className="auth-subtitle">Verificando sua sessão…</p>
+        </div>
+      </main>
+    );
+  }
 
   if (authenticatedUsername) {
-    return <AuthSuccess username={authenticatedUsername} outcome={authOutcome} />;
+    return (
+      <AuthSuccess
+        username={authenticatedUsername}
+        outcome={authOutcome}
+        onSignOut={handleSignOut}
+      />
+    );
   }
 
   return (
@@ -57,12 +136,10 @@ export function App() {
         </div>
 
         <div className="auth-card">
+          {sessionCheckError ? <p className="form-error" role="alert">{sessionCheckError}</p> : null}
           {mode === 'signup' ? (
             <SignupForm
-              onCreated={(username) => {
-                setAuthOutcome('created');
-                setAuthenticatedUsername(username);
-              }}
+              onCreated={(username) => handleAuthenticated(username, 'created')}
               onSignin={(username) => {
                 setSigninUsername(username);
                 setMode('signin');
@@ -73,10 +150,7 @@ export function App() {
               initialUsername={signinUsername}
               onBack={() => setMode('signup')}
               onSignup={() => setMode('signup')}
-              onSignedIn={(username) => {
-                setAuthOutcome('signed-in');
-                setAuthenticatedUsername(username);
-              }}
+              onSignedIn={(username) => handleAuthenticated(username, 'signed-in')}
             />
           )}
         </div>
