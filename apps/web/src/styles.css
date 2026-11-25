@@ -120,6 +120,18 @@ button { cursor: pointer; }
 .back-link { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 34px; color: #81899d; font-size: 12px; }
 .back-link span { font-size: 17px; font-weight: 400; }
 .auth-privacy { margin: 30px 0 0; color: #a0a6b5; text-align: center; font-size: 11px; }
+.install-control { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 10px; }
+.install-control .button-text { min-height: 34px; }
+.install-message { color: #5b657c; text-align: center; font-size: 11px; }
+.install-dialog { width: min(420px, calc(100vw - 32px)); padding: 0; overflow: visible; border: 0; border-radius: 17px; color: var(--ink); background: #fff; box-shadow: 0 24px 80px #17183836; }
+.install-dialog::backdrop { background: #20234470; backdrop-filter: blur(3px); }
+.install-dialog-content { position: relative; padding: 36px 32px 28px; }
+.install-dialog-content h2 { margin: 0; font-family: var(--font-display); font-size: 24px; letter-spacing: -0.8px; }
+.install-dialog-content > p:not(.eyebrow) { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.install-dialog-content ol { display: flex; flex-direction: column; gap: 9px; padding-left: 19px; color: #3c4560; font-size: 13px; line-height: 1.6; }
+.install-dialog-content .install-dialog-note { margin-top: 20px; font-size: 11px; }
+.dialog-close { position: absolute; top: 13px; right: 15px; display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; color: #737d93; background: #f0f1f7; font-size: 22px; line-height: 1; }
+.dialog-close:focus-visible { outline: 3px solid #aaa4ff; outline-offset: 2px; }
 .form-error { margin: -14px 0 22px; padding: 12px 13px; border: 1px solid #f3c7ca; border-radius: 8px; color: #a8444d; background: #fff4f4; font-size: 12px; line-height: 1.5; }
 .notice { display: flex; gap: 12px; margin: -8px 0 21px; padding: 13px; border: 1px solid #f0dcae; border-radius: 9px; background: #fffaf0; }
 .notice-icon { display: grid; width: 20px; height: 20px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #77590d; background: #f5e3b7; font-size: 12px; font-weight: 700; }
@@ -136,6 +148,7 @@ button { cursor: pointer; }
 .success-card .auth-subtitle strong { color: var(--ink); font-weight: 600; }
 .signout-button { width: 100%; margin-top: 24px; }
 .session-loading { display: flex; min-height: 190px; flex-direction: column; align-items: center; justify-content: center; }
+.success-layout > .install-control { position: fixed; right: 24px; bottom: 18px; }
 .loading-indicator { width: 28px; height: 28px; margin-bottom: 16px; border: 2px solid #dedcf8; border-top-color: var(--violet); border-radius: 50%; animation: spin 800ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -153,8 +166,15 @@ button { cursor: pointer; }
   .mobile-brand { display: inline-flex; margin-bottom: 60px; }
   .auth-card { width: 100%; max-width: 440px; align-self: center; margin: 0 auto; }
   .auth-main > .auth-privacy { margin-top: auto; padding-top: 36px; }
+  .auth-main > .install-control { margin-bottom: max(4px, env(safe-area-inset-bottom)); }
   .auth-heading h2 { font-size: 28px; }
   .success-card { padding: 42px 26px; }
+}
+
+@media (display-mode: standalone) {
+  body { min-height: 100svh; overscroll-behavior-y: contain; }
+  .auth-layout { min-height: 100svh; }
+  .auth-aside, .auth-main { min-height: calc(100svh - 36px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

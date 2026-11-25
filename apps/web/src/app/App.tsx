@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SignupForm } from '../features/auth/SignupForm';
 import { SigninForm } from '../features/auth/SigninForm';
 import { AuthSuccess } from '../features/auth/AuthSuccess';
+import { InstallAppControl } from '../features/pwa/InstallAppControl';
 
 type AuthMode = 'signup' | 'signin';
 type AuthOutcome = 'created' | 'signed-in';
@@ -81,17 +82,21 @@ export function App() {
           <div className="loading-indicator" aria-hidden="true" />
           <p className="auth-subtitle">Verificando sua sessão…</p>
         </div>
+        <InstallAppControl />
       </main>
     );
   }
 
   if (authenticatedUsername) {
     return (
-      <AuthSuccess
-        username={authenticatedUsername}
-        outcome={authOutcome}
-        onSignOut={handleSignOut}
-      />
+      <>
+        <AuthSuccess
+          username={authenticatedUsername}
+          outcome={authOutcome}
+          onSignOut={handleSignOut}
+        />
+        <InstallAppControl />
+      </>
     );
   }
 
@@ -158,6 +163,7 @@ export function App() {
         <p className="auth-privacy">
           Sua agenda fica sincronizada entre seus dispositivos.
         </p>
+        <InstallAppControl />
       </section>
     </main>
   );
