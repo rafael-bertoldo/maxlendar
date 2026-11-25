@@ -1,0 +1,14 @@
+{
+  "name": "maxlendar",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run start:dev --workspace @maxlendar/api",
+    "dev:web": "npm run dev --workspace @maxlendar/web",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

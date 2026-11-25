@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/app/App.tsx","./src/features/auth/AuthSuccess.tsx","./src/features/auth/SigninForm.tsx","./src/features/auth/SignupForm.tsx","./src/shared/ui/Button.tsx","./src/shared/ui/TextField.tsx"],"version":"5.9.3"}
