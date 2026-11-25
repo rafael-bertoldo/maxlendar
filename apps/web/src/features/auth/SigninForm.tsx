@@ -6,9 +6,10 @@ type SigninFormProps = {
   initialUsername: string;
   onBack: () => void;
   onSignup: () => void;
+  onSignedIn: (username: string) => void;
 };
 
-export function SigninForm({ initialUsername, onBack, onSignup }: SigninFormProps) {
+export function SigninForm({ initialUsername, onBack, onSignup, onSignedIn }: SigninFormProps) {
   const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,13 +33,21 @@ export function SigninForm({ initialUsername, onBack, onSignup }: SigninFormProp
         body: JSON.stringify({ username, password }),
       });
 
-      const body = (await response.json().catch(() => ({}))) as { message?: string };
+      const body = (await response.json().catch(() => ({}))) as {
+        user?: { id: string; username: string };
+        code?: string;
+        message?: string;
+      };
       if (!response.ok) {
-        setError(body.message ?? 'Não foi possível entrar. Confira seus dados e tente novamente.');
+        if (response.status === 401 || body.code === 'INVALID_CREDENTIALS') {
+          setError('Nome de usuário ou senha incorretos. Confira os dados e tente novamente.');
+        } else {
+          setError(body.message ?? 'Não foi possível entrar. Confira seus dados e tente novamente.');
+        }
         return;
       }
 
-      window.location.assign('/calendar');
+      onSignedIn(body.user?.username ?? username);
     } catch {
       setError('Não foi possível conectar ao maxlendar. Verifique sua conexão e tente novamente.');
     } finally {

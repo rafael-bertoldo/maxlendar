@@ -4,14 +4,16 @@ import { SigninForm } from '../features/auth/SigninForm';
 import { AuthSuccess } from '../features/auth/AuthSuccess';
 
 type AuthMode = 'signup' | 'signin';
+type AuthOutcome = 'created' | 'signed-in';
 
 export function App() {
   const [mode, setMode] = useState<AuthMode>('signup');
-  const [createdUsername, setCreatedUsername] = useState<string | null>(null);
+  const [authenticatedUsername, setAuthenticatedUsername] = useState<string | null>(null);
+  const [authOutcome, setAuthOutcome] = useState<AuthOutcome>('created');
   const [signinUsername, setSigninUsername] = useState('');
 
-  if (createdUsername) {
-    return <AuthSuccess username={createdUsername} />;
+  if (authenticatedUsername) {
+    return <AuthSuccess username={authenticatedUsername} outcome={authOutcome} />;
   }
 
   return (
@@ -57,7 +59,10 @@ export function App() {
         <div className="auth-card">
           {mode === 'signup' ? (
             <SignupForm
-              onCreated={setCreatedUsername}
+              onCreated={(username) => {
+                setAuthOutcome('created');
+                setAuthenticatedUsername(username);
+              }}
               onSignin={(username) => {
                 setSigninUsername(username);
                 setMode('signin');
@@ -68,6 +73,10 @@ export function App() {
               initialUsername={signinUsername}
               onBack={() => setMode('signup')}
               onSignup={() => setMode('signup')}
+              onSignedIn={(username) => {
+                setAuthOutcome('signed-in');
+                setAuthenticatedUsername(username);
+              }}
             />
           )}
         </div>
