@@ -4,12 +4,15 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "nest build",
+    "prebuild": "prisma generate",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate:dev": "node scripts/prisma-cli.cjs migrate dev",
+    "prisma:migrate:deploy": "node scripts/prisma-cli.cjs migrate deploy"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

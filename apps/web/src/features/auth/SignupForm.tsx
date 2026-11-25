@@ -4,7 +4,7 @@ import { TextField } from '../../shared/ui/TextField';
 
 type SignupFormProps = {
   onCreated: (username: string) => void;
-  onSignin: () => void;
+  onSignin: (username: string) => void;
 };
 
 export function SignupForm({ onCreated, onSignin }: SignupFormProps) {
@@ -72,7 +72,7 @@ export function SignupForm({ onCreated, onSignin }: SignupFormProps) {
             <strong>Esse nome de usuário já está em uso.</strong>
             <span>Acesse essa agenda ou escolha outro nome de usuário.</span>
             <div className="notice-actions">
-              <Button variant="secondary" onClick={onSignin}>
+              <Button variant="secondary" onClick={() => onSignin(username)}>
                 Entrar como {username}
               </Button>
               <Button
@@ -131,7 +131,7 @@ export function SignupForm({ onCreated, onSignin }: SignupFormProps) {
 
       <p className="auth-switch">
         Já tem uma agenda?{' '}
-        <button className="link-button" type="button" onClick={onSignin}>
+        <button className="link-button" type="button" onClick={() => onSignin(username)}>
           Entrar
         </button>
       </p>

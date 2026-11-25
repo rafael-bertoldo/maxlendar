@@ -3,12 +3,13 @@ import { Button } from '../../shared/ui/Button';
 import { TextField } from '../../shared/ui/TextField';
 
 type SigninFormProps = {
+  initialUsername: string;
   onBack: () => void;
   onSignup: () => void;
 };
 
-export function SigninForm({ onBack, onSignup }: SigninFormProps) {
-  const [username, setUsername] = useState('');
+export function SigninForm({ initialUsername, onBack, onSignup }: SigninFormProps) {
+  const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

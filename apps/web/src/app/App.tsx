@@ -8,6 +8,7 @@ type AuthMode = 'signup' | 'signin';
 export function App() {
   const [mode, setMode] = useState<AuthMode>('signup');
   const [createdUsername, setCreatedUsername] = useState<string | null>(null);
+  const [signinUsername, setSigninUsername] = useState('');
 
   if (createdUsername) {
     return <AuthSuccess username={createdUsername} />;
@@ -57,10 +58,14 @@ export function App() {
           {mode === 'signup' ? (
             <SignupForm
               onCreated={setCreatedUsername}
-              onSignin={() => setMode('signin')}
+              onSignin={(username) => {
+                setSigninUsername(username);
+                setMode('signin');
+              }}
             />
           ) : (
             <SigninForm
+              initialUsername={signinUsername}
               onBack={() => setMode('signup')}
               onSignup={() => setMode('signup')}
             />
