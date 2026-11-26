@@ -24,6 +24,6 @@ The week starts on Monday in the week view, following ISO 8601 and the common Br
 
 - A trip to another time zone changes the displayed hour while the event keeps its real instant, which is compatible with future reminder scheduling.
 - Ambiguous or nonexistent local times during daylight-saving transitions are resolved by the browser's `Date` conversion at input time; the API accepts only unambiguous ISO instants with an explicit offset.
-- Users can observe different local hours for the same event on different devices; this must be clear in the interface when time zones differ.
+- Users can observe different local hours for the same event on different devices. The event card shows the viewer-local date/time and, when the creator's IANA zone differs, the original wall-clock time as provenance.
 - Time-zone provenance is stored but is not used to force a fixed display hour.
 - Range queries must use half-open intervals (`from` inclusive, `to` exclusive) so adjacent day/week/month ranges do not duplicate events.
