@@ -39,12 +39,9 @@ export function MonthView({ anchor, days, events }: MonthViewProps) {
             >
               <span className="month-day-number">{day.getDate()}</span>
               <div className="month-events">
-                {dayEvents.slice(0, 3).map((event) => (
+                {dayEvents.map((event) => (
                   <EventItem key={event.id} event={event} compact />
                 ))}
-                {dayEvents.length > 3 ? (
-                  <span className="month-more">+{dayEvents.length - 3} mais</span>
-                ) : null}
               </div>
             </section>
           );

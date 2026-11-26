@@ -20,6 +20,8 @@ type CalendarPageProps = {
   onSessionExpired: () => void;
 };
 
+const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: CalendarPageProps) {
   const [view, setView] = useState<CalendarView>('day');
   const [anchor, setAnchor] = useState(() => new Date());
@@ -138,6 +140,10 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
           </div>
         </div>
 
+        <p className="calendar-timezone">
+          Horários exibidos no fuso deste dispositivo: <strong>{viewerTimeZone}</strong>.
+        </p>
+
         {loadError ? (
           <div className="calendar-status" role="alert">
             <p>{loadError}</p>
@@ -150,17 +156,19 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
             <span className="loading-indicator" aria-hidden="true" />
             <p>Carregando seus eventos…</p>
           </div>
-        ) : events.length === 0 ? (
-          <div className="calendar-status" role="status">
-            <span className="empty-mark" aria-hidden="true">◇</span>
-            <p>Nenhum evento neste período.</p>
-          </div>
-        ) : view === 'day' ? (
-          <DayView days={range.days} events={events} />
-        ) : view === 'week' ? (
-          <WeekView days={range.days} events={events} />
         ) : (
-          <MonthView anchor={anchor} days={range.days} events={events} />
+          <>
+            {events.length === 0 ? (
+              <p className="calendar-empty" role="status">Nenhum evento neste período.</p>
+            ) : null}
+            {view === 'day' ? (
+              <DayView days={range.days} events={events} />
+            ) : view === 'week' ? (
+              <WeekView days={range.days} events={events} />
+            ) : (
+              <MonthView anchor={anchor} days={range.days} events={events} />
+            )}
+          </>
         )}
       </section>
     </main>

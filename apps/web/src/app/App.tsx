@@ -58,6 +58,7 @@ export function App() {
     setSigninUsername(authenticatedUsername ?? '');
     setAuthenticatedUsername(null);
     setAuthNotice(null);
+    setSessionCheckError('Sua sessão foi encerrada. Entre novamente para continuar.');
     setMode('signin');
   }, [authenticatedUsername]);
 

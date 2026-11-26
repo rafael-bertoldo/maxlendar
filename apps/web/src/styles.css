@@ -172,9 +172,10 @@ button { cursor: pointer; }
 .range-navigation h2 { min-width: 210px; margin: 0; font-family: var(--font-display); font-size: 14px; text-align: center; letter-spacing: -0.2px; }
 .range-arrow { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font-size: 20px; line-height: 1; }
 .range-navigation .button { min-height: 32px; padding: 0 12px; }
+.calendar-timezone { margin: -6px 0 16px; color: var(--muted); font-size: 11px; }
 .calendar-status { display: flex; min-height: 340px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .calendar-status .button { min-height: 34px; padding: 0 14px; }
-.empty-mark { color: #b8bce8; font-size: 28px; }
+.calendar-empty { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); background: #f7f8fc; font-size: 12px; }
 .view-caption { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
 .day-grid { max-height: 560px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; }
 .day-row { display: grid; min-height: 52px; grid-template-columns: 72px 1fr; border-bottom: 1px solid #f0f1f6; }
@@ -200,7 +201,6 @@ button { cursor: pointer; }
 .month-cell-outside .month-day-number { color: #b9bfd0; }
 .month-day-number { display: block; margin-bottom: 6px; color: #5d6580; font-size: 11px; font-weight: 700; }
 .month-events { display: flex; flex-direction: column; gap: 4px; }
-.month-more { color: var(--violet-dark); font-size: 10px; font-weight: 700; }
 
 @media (max-width: 860px) {
   .auth-layout { grid-template-columns: minmax(260px, 0.75fr) minmax(380px, 1.25fr); }
