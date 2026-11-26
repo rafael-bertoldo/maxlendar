@@ -1,7 +1,7 @@
 # Product Backlog
 
-**Status:** MVP draft for product and QA review  
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0003.
+**Status:** MVP draft; US-01 to US-06 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0004.
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -55,6 +55,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 
 ### US-05 — View calendar events by day, week, and month
 
+**Delivery:** Implemented in `850130a`, adjusted in `020bd2d`; QA report: [US-05](qa/US-05.md).
+
 **Description:** As a user, I want to see my calendar by day, week, or month, so that I can review events at different levels of detail.
 
 **Acceptance criteria:**
@@ -66,6 +68,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** The week starts on Monday.
 
 ### US-06 — Create a one-off event manually
+
+**Delivery:** Implemented in `bfedb1c`, adjusted in `1ae5d12`; QA report: [US-06](qa/US-06.md).
 
 **Description:** As a user, I want to create an event with a title, date, and time, so that I can record a single scheduled occurrence in my calendar.
 
