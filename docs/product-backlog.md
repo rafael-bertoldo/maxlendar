@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-11 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-15 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0010.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -162,7 +162,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** A local deterministic interpreter resolves supported Portuguese relative dates/times in the viewer's time zone; missing or unsupported details produce a clarification, never an implicit save ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers representative create phrases, missing title/date/time, DST-ambiguous local input, rejection, and confirmation through the existing event endpoint.
 
-**Delivery:** Pending.
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-12](qa/US-12.md).
 
 ### US-13 — Ask questions about my calendar
 
@@ -176,7 +176,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Questions are answered only from the signed-in user's events in a resolved range; no match produces an explicit “no events found” answer and ambiguous ranges produce a clarification ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers “hoje”, “amanhã”, “próxima semana”, no-match answers, cross-user isolation, and ambiguous wording.
 
-**Delivery:** Pending.
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-13](qa/US-13.md).
 
 ### US-14 — Review and confirm an AI-proposed event change
 
@@ -191,7 +191,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Edit targets are matched by title tokens within a 14-day window around the viewer's reference date; zero or multiple matches require clarification, and confirmation uses the stored `version` through `PATCH` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, and a `409 VERSION_CONFLICT` case.
 
-**Delivery:** Pending.
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-14](qa/US-14.md).
 
 ### US-15 — Review and confirm an AI-proposed event deletion
 
@@ -206,7 +206,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Deletion targets use the same title-token disambiguation as edits; multiple matches, missing targets, or unclear requests produce a clarification, and confirmation uses the stored `version` through `DELETE` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, `409`, and cancellation of pending reminders after confirmation.
 
-**Delivery:** Pending.
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-15](qa/US-15.md).
 
 ## Out of scope for the MVP
 
@@ -225,4 +225,4 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 4. How quickly must changes appear on other devices, and how should concurrent edits be surfaced or resolved?
 5. ~~What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?~~ Resolved for the MVP in [ADR 0009](decisions/0009-assistant-contract.md) and [ADR 0010](decisions/0010-local-assistant.md): read-only structured interpretation, explicit clarifications, confirmation via existing endpoints, and QA evidence sets per story.
 6. What authentication session mechanism satisfies persistent per-device sessions without automatic expiry, and how should architecture address loss of a device?
-7. Which hosting and AI/Web Push providers meet the operational, privacy, cost, and availability needs of the MVP?
+7. Partially resolved for the MVP: [ADR 0010](decisions/0010-local-assistant.md) uses a local assistant with no external AI provider, and [ADR 0008](decisions/0008-web-push-reminders.md) uses project-generated VAPID instead of a hosted push provider. Hosting provider selection remains open for deployment.
