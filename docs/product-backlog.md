@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-07 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-08 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0005.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -105,6 +105,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - When an event is changed, then its reminder schedule is updated to correspond to the saved event time, subject to the reminder rules.
 - **Decided 2026-11-26:** Concurrent edits use optimistic versioning with `409 VERSION_CONFLICT`; the form prefills in the viewer's local zone and saves with the editor's IANA zone ([ADR 0005](decisions/0005-event-editing.md)).
 - **Deferred 2026-11-26:** Reminder rescheduling depends on US-11; US-08 acceptance covers the event record only and QA must mark this criterion as not executable yet.
+
+**Delivery:** Implemented in `7801fbb`, adjusted in `c758e56`; QA report: [US-08](qa/US-08.md). Reminder criterion remains deferred to US-11.
 
 ### US-09 — Delete a saved event
 
