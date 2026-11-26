@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-10 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-11 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0008.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -147,7 +147,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** The UI asks for permission only from an explicit "Ativar lembretes" action; denied, unavailable, or revoked permission shows a non-blocking message and does not prompt again automatically ([ADR 0008](decisions/0008-web-push-reminders.md)).
 - **Decided 2026-11-26:** Delivery uses Web Push/VAPID with per-user/device subscriptions; platform support is browser-dependent and delivery is best-effort, with no retry queue in the MVP ([ADR 0008](decisions/0008-web-push-reminders.md)).
 
-**Delivery:** Implemented in pending commit; QA report: pending. 
+**Delivery:** Implemented in `42b3bd4`, adjusted in `e206ed0`; QA report: [US-11](qa/US-11.md). 
 
 ### US-12 — Create an event from natural language with confirmation
 
