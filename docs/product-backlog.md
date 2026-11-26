@@ -1,7 +1,7 @@
 # Product Backlog
 
 **Status:** MVP draft; US-01 to US-07 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0004.
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0005.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -103,7 +103,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given an event in my calendar, when I save valid replacement title, date, and/or time values, then the event displays the saved values.
 - Given my edit is invalid, when I try to save it, then the existing event remains unchanged and the product identifies the invalid input.
 - When an event is changed, then its reminder schedule is updated to correspond to the saved event time, subject to the reminder rules.
-- **Open decision:** Behavior when the same event is edited concurrently on multiple devices is unresolved.
+- **Decided 2026-11-26:** Concurrent edits use optimistic versioning with `409 VERSION_CONFLICT`; the form prefills in the viewer's local zone and saves with the editor's IANA zone ([ADR 0005](decisions/0005-event-editing.md)).
+- **Deferred 2026-11-26:** Reminder rescheduling depends on US-11; US-08 acceptance covers the event record only and QA must mark this criterion as not executable yet.
 
 ### US-09 — Delete a saved event
 
