@@ -2,6 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 
 export const MAX_TITLE_LENGTH = 120;
 export const MAX_RANGE_DAYS = 62;
+export const MAX_VERSION = 2_147_483_647;
 
 const ISO_INSTANT =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
@@ -43,7 +44,12 @@ export function readTimeZone(value: unknown): string {
 }
 
 export function readVersion(value: unknown): number {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > MAX_VERSION
+  ) {
     throw validationError("version", "A valid event version is required.");
   }
 
