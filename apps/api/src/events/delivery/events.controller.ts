@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -14,6 +15,7 @@ import {
 import { SessionGuard } from "../../auth/delivery/session.guard";
 import type { AuthenticatedRequest } from "../../auth/delivery/session.guard";
 import { CreateEvent } from "../application/create-event";
+import { DeleteEvent } from "../application/delete-event";
 import { ListEvents } from "../application/list-events";
 import { UpdateEvent } from "../application/update-event";
 
@@ -37,6 +39,7 @@ export class EventsController {
     private readonly createEvent: CreateEvent,
     private readonly listEvents: ListEvents,
     private readonly updateEvent: UpdateEvent,
+    private readonly deleteEvent: DeleteEvent,
   ) {}
 
   @Post()
@@ -66,6 +69,19 @@ export class EventsController {
       version: body?.version,
     });
     return { event };
+  }
+
+  @Delete(":id")
+  async remove(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Query("version") version: unknown,
+  ) {
+    return this.deleteEvent.execute({
+      userId: request.sessionUser.id,
+      id,
+      version,
+    });
   }
 
   @Get()

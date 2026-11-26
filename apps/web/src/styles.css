@@ -114,6 +114,8 @@ button { cursor: pointer; }
 .button-secondary { color: var(--violet-dark); background: #efeeff; }
 .button-secondary:hover:not(:disabled) { background: #e4e2ff; }
 .button-text { min-height: 36px; padding: 0 4px; color: #747d93; background: transparent; }
+.button-danger { color: #fff; background: #c2414f; }
+.button-danger:hover:not(:disabled) { background: #a9323f; transform: translateY(-1px); }
 .submit-button { width: 100%; min-height: 50px; margin-top: 2px; }
 .submit-button span { font-size: 16px; font-weight: 400; }
 .auth-switch { margin: 24px 0 0; color: var(--muted); text-align: center; font-size: 12px; }
@@ -222,6 +224,9 @@ button { cursor: pointer; }
 .event-form { display: flex; flex-direction: column; gap: 18px; }
 .event-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .event-dialog .submit-button { width: 100%; min-height: 48px; }
+.form-secondary-actions { margin-top: 16px; text-align: center; }
+.delete-actions { display: flex; gap: 12px; margin-top: 28px; }
+.delete-actions .button { flex: 1; min-height: 44px; }
 
 @media (max-width: 860px) {
   .auth-layout { grid-template-columns: minmax(260px, 0.75fr) minmax(380px, 1.25fr); }

@@ -88,6 +88,13 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     setReloadCount((count) => count + 1);
   }
 
+  function handleEventDeleted() {
+    setIsEventFormOpen(false);
+    setEditingEvent(null);
+    setSavedNotice('Evento excluído da sua agenda.');
+    setReloadCount((count) => count + 1);
+  }
+
   function handleVersionConflict() {
     setIsEventFormOpen(false);
     setEditingEvent(null);
@@ -222,6 +229,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
           setEditingEvent(null);
         }}
         onSaved={handleEventSaved}
+        onDeleted={handleEventDeleted}
         onConflict={handleVersionConflict}
         onSessionExpired={onSessionExpired}
       />

@@ -72,6 +72,29 @@ export async function createEvent(
   return body.event;
 }
 
+export async function deleteEvent(
+  id: string,
+  version: number,
+  signal?: AbortSignal,
+): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/events/${encodeURIComponent(id)}?version=${version}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      signal,
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new Error('Não foi possível conectar ao maxlendar. Verifique sua conexão.');
+  }
+
+  if (!response.ok) {
+    throw await readApiError(response);
+  }
+}
+
 export async function updateEvent(
   id: string,
   input: {

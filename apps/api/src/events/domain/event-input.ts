@@ -50,6 +50,14 @@ export function readVersion(value: unknown): number {
   return value;
 }
 
+export function readVersionParam(value: unknown): number {
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    return readVersion(Number(value));
+  }
+
+  return readVersion(value);
+}
+
 export function readInstant(value: unknown, field: string): Date {
   if (typeof value !== "string") {
     throw validationError(field, "A valid date and time are required.");

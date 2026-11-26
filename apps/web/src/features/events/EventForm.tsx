@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../shared/api/client';
-import { createEvent, updateEvent, type CalendarEvent } from '../../shared/api/events';
+import { createEvent, deleteEvent, updateEvent, type CalendarEvent } from '../../shared/api/events';
 import {
+  formatEventDateTime,
   formatTime,
   isValidDateInput,
   isValidTimeInput,
@@ -18,6 +19,7 @@ type EventFormProps = {
   event?: CalendarEvent;
   onClose: () => void;
   onSaved: (event: CalendarEvent) => void;
+  onDeleted: () => void;
   onConflict: () => void;
   onSessionExpired: () => void;
 };
@@ -34,6 +36,7 @@ export function EventForm({
   event,
   onClose,
   onSaved,
+  onDeleted,
   onConflict,
   onSessionExpired,
 }: EventFormProps) {
@@ -46,6 +49,7 @@ export function EventForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [timeAdjustment, setTimeAdjustment] = useState<string | null>(null);
   const [needsReload, setNeedsReload] = useState(false);
+  const [isConfirmingDeletion, setIsConfirmingDeletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -73,7 +77,37 @@ export function EventForm({
     setFormError(null);
     setTimeAdjustment(null);
     setNeedsReload(false);
+    setIsConfirmingDeletion(false);
   }, [open, initialDate, event]);
+
+  function handleRequestError(error: unknown, fallback: string) {
+    if (error instanceof DOMException && error.name === 'AbortError') return;
+    if (error instanceof ApiError && error.status === 401) {
+      onSessionExpired();
+      return;
+    }
+    if (error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT') {
+      setFormError('Este evento foi alterado em outro dispositivo. Recarregue a agenda e tente novamente.');
+      setNeedsReload(true);
+      return;
+    }
+    if (error instanceof ApiError) {
+      if (error.field === 'title') {
+        setErrors({ title: error.message });
+      }
+      if (error.field === 'startsAt') {
+        setFormError('Confira a data e o horário informados.');
+        return;
+      }
+      setFormError(
+        error.field === 'timeZone'
+          ? 'O fuso horário deste dispositivo não pôde ser enviado. Atualize o navegador e tente novamente.'
+          : error.message ?? fallback,
+      );
+    } else {
+      setFormError(error instanceof Error ? error.message : fallback);
+    }
+  }
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -123,43 +157,34 @@ export function EventForm({
         : await createEvent(input, controller.signal);
       onSaved(savedEvent);
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      if (error instanceof ApiError && error.status === 401) {
-        onSessionExpired();
-        return;
-      }
-      if (error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT') {
-        setFormError('Este evento foi alterado em outro dispositivo. Recarregue a agenda e tente novamente.');
-        setNeedsReload(true);
-        return;
-      }
-      if (error instanceof ApiError) {
-        if (error.field === 'title') {
-          setErrors({ title: error.message });
-        }
-        if (error.field === 'startsAt') {
-          setFormError('Confira a data e o horário informados.');
-          return;
-        }
-        setFormError(
-          error.field === 'timeZone'
-            ? 'O fuso horário deste dispositivo não pôde ser enviado. Atualize o navegador e tente novamente.'
-            : error.message ?? (event ? 'Não foi possível alterar o evento.' : 'Não foi possível salvar o evento.'),
-        );
-      } else {
-        setFormError(
-          error instanceof Error
-            ? error.message
-            : event
-              ? 'Não foi possível alterar o evento.'
-              : 'Não foi possível salvar o evento.',
-        );
-      }
+      handleRequestError(error, event ? 'Não foi possível alterar o evento.' : 'Não foi possível salvar o evento.');
     } finally {
       requestRef.current = null;
       setIsSubmitting(false);
     }
   }
+
+  async function handleDelete() {
+    if (!event || isSubmitting) return;
+
+    setFormError(null);
+    setNeedsReload(false);
+    setIsSubmitting(true);
+    const controller = new AbortController();
+    requestRef.current = controller;
+
+    try {
+      await deleteEvent(event.id, event.version, controller.signal);
+      onDeleted();
+    } catch (error) {
+      handleRequestError(error, 'Não foi possível excluir o evento.');
+    } finally {
+      requestRef.current = null;
+      setIsSubmitting(false);
+    }
+  }
+
+  const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return (
     <dialog
@@ -174,13 +199,92 @@ export function EventForm({
         <button className="dialog-close" type="button" aria-label="Fechar formulário" onClick={closeForm}>
           ×
         </button>
-        <p className="eyebrow">{event ? 'Editar evento' : 'Novo evento'}</p>
-        <h2>{event ? 'Ajustar este evento' : 'O que você planejou?'}</h2>
-        <p className="event-dialog-subtitle">
-          {event
-            ? `O evento foi salvo em ${event.timeZone}. Os campos abaixo usam o fuso deste dispositivo; ao salvar, ele passa a ser a referência.`
-            : 'Informe a data e a hora no fuso deste dispositivo. O evento será salvo como um horário fixo.'}
-        </p>
+
+        {isConfirmingDeletion && event ? (
+          <>
+            <p className="eyebrow">Excluir evento</p>
+            <h2>Remover este evento?</h2>
+            <p className="event-dialog-subtitle">
+              <strong>{event.title}</strong> — {formatEventDateTime(event.startsAt)} no fuso {viewerTimeZone}.
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="delete-actions">
+              <Button variant="secondary" onClick={() => setIsConfirmingDeletion(false)} disabled={isSubmitting}>
+                Voltar
+              </Button>
+              <Button variant="danger" onClick={() => void handleDelete()} disabled={isSubmitting}>
+                {isSubmitting ? 'Excluindo…' : 'Excluir evento'}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="eyebrow">{event ? 'Editar evento' : 'Novo evento'}</p>
+            <h2>{event ? 'Ajustar este evento' : 'O que você planejou?'}</h2>
+            <p className="event-dialog-subtitle">
+              {event
+                ? `O evento foi salvo em ${event.timeZone}. Os campos abaixo usam o fuso deste dispositivo; ao salvar, ele passa a ser a referência.`
+                : 'Informe a data e a hora no fuso deste dispositivo. O evento será salvo como um horário fixo.'}
+            </p>
+
+            {timeAdjustment ? <p className="notice notice-warning" role="status">{timeAdjustment}</p> : null}
+
+            <form className="event-form" onSubmit={(submitEvent) => void handleSubmit(submitEvent)} noValidate>
+              <TextField
+                id="event-title"
+                label="Título"
+                name="title"
+                value={title}
+                onChange={(value) => {
+                  setTitle(value);
+                  setErrors((current) => ({ ...current, title: undefined }));
+                }}
+                placeholder="Ex.: Dentista"
+                error={errors.title}
+                required
+              />
+              <div className="event-form-row">
+                <TextField
+                  id="event-date"
+                  label="Data"
+                  name="date"
+                  type="date"
+                  value={date}
+                  onChange={(value) => {
+                    setDate(value);
+                    setErrors((current) => ({ ...current, date: undefined }));
+                  }}
+                  error={errors.date}
+                  required
+                />
+                <TextField
+                  id="event-time"
+                  label="Horário"
+                  name="time"
+                  type="time"
+                  value={time}
+                  onChange={(value) => {
+                    setTime(value);
+                    setErrors((current) => ({ ...current, time: undefined }));
+                  }}
+                  error={errors.time}
+                  required
+                />
+              </div>
+              <Button type="submit" className="submit-button" disabled={isSubmitting}>
+                {isSubmitting ? 'Salvando…' : event ? 'Salvar alterações' : 'Salvar evento'}
+              </Button>
+            </form>
+
+            {event ? (
+              <div className="form-secondary-actions">
+                <Button variant="text" onClick={() => setIsConfirmingDeletion(true)} disabled={isSubmitting}>
+                  Excluir evento
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
 
         {formError ? <p className="form-error" role="alert">{formError}</p> : null}
         {needsReload ? (
@@ -188,54 +292,6 @@ export function EventForm({
             Recarregar agenda
           </Button>
         ) : null}
-        {timeAdjustment ? <p className="notice notice-warning" role="status">{timeAdjustment}</p> : null}
-
-        <form className="event-form" onSubmit={(submitEvent) => void handleSubmit(submitEvent)} noValidate>
-          <TextField
-            id="event-title"
-            label="Título"
-            name="title"
-            value={title}
-            onChange={(value) => {
-              setTitle(value);
-              setErrors((current) => ({ ...current, title: undefined }));
-            }}
-            placeholder="Ex.: Dentista"
-            error={errors.title}
-            required
-          />
-          <div className="event-form-row">
-            <TextField
-              id="event-date"
-              label="Data"
-              name="date"
-              type="date"
-              value={date}
-              onChange={(value) => {
-                setDate(value);
-                setErrors((current) => ({ ...current, date: undefined }));
-              }}
-              error={errors.date}
-              required
-            />
-            <TextField
-              id="event-time"
-              label="Horário"
-              name="time"
-              type="time"
-              value={time}
-              onChange={(value) => {
-                setTime(value);
-                setErrors((current) => ({ ...current, time: undefined }));
-              }}
-              error={errors.time}
-              required
-            />
-          </div>
-          <Button type="submit" className="submit-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando…' : event ? 'Salvar alterações' : 'Salvar evento'}
-          </Button>
-        </form>
       </div>
     </dialog>
   );
