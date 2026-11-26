@@ -1,7 +1,7 @@
 # Product Backlog
 
 **Status:** MVP draft; US-01 to US-09 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0006.  
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0007.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -129,8 +129,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 
 - Given I create, edit, or delete an event on one device, when another device accesses the same account, then it reflects the saved change.
 - Given I am signed in on multiple devices, then each device continues to use the same account calendar while maintaining its own sign-in session.
-- **Open decision:** The acceptable update latency and whether connected devices require immediate updates or can refresh on focus are unresolved.
-- **Open decision:** Conflict behavior for concurrent edits is unresolved.
+- **Decided 2026-11-26:** Connected devices refresh the current range on window focus/visibility instead of polling; stale writes return `409 VERSION_CONFLICT` ([ADR 0007](decisions/0007-sync-on-focus.md)).
+- **Accepted limitation:** Background tabs may remain stale until focused; the interface states this explicitly.
 
 ### US-11 — Receive the standard push reminders
 
