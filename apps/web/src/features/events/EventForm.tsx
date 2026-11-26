@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../shared/api/client';
-import { createEvent, type CalendarEvent } from '../../shared/api/events';
+import { createEvent, updateEvent, type CalendarEvent } from '../../shared/api/events';
 import {
   formatTime,
   isValidDateInput,
   isValidTimeInput,
   parseLocalDateTime,
   toDateInputValue,
+  toTimeInputValue,
 } from '../../shared/lib/calendar';
 import { Button } from '../../shared/ui/Button';
 import { TextField } from '../../shared/ui/TextField';
@@ -14,8 +15,10 @@ import { TextField } from '../../shared/ui/TextField';
 type EventFormProps = {
   open: boolean;
   initialDate: Date;
+  event?: CalendarEvent;
   onClose: () => void;
-  onCreated: (event: CalendarEvent) => void;
+  onSaved: (event: CalendarEvent) => void;
+  onConflict: () => void;
   onSessionExpired: () => void;
 };
 
@@ -25,7 +28,15 @@ type FieldErrors = {
   time?: string;
 };
 
-export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpired }: EventFormProps) {
+export function EventForm({
+  open,
+  initialDate,
+  event,
+  onClose,
+  onSaved,
+  onConflict,
+  onSessionExpired,
+}: EventFormProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const [title, setTitle] = useState('');
@@ -34,6 +45,7 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [timeAdjustment, setTimeAdjustment] = useState<string | null>(null);
+  const [needsReload, setNeedsReload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -53,16 +65,18 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
 
   useEffect(() => {
     if (!open) return;
-    setTitle('');
-    setDate(toDateInputValue(initialDate));
-    setTime('');
+    const startDate = event ? new Date(event.startsAt) : initialDate;
+    setTitle(event?.title ?? '');
+    setDate(toDateInputValue(startDate));
+    setTime(toTimeInputValue(startDate));
     setErrors({});
     setFormError(null);
     setTimeAdjustment(null);
-  }, [open, initialDate]);
+    setNeedsReload(false);
+  }, [open, initialDate, event]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
     if (isSubmitting) return;
 
     const nextErrors: FieldErrors = {};
@@ -87,6 +101,7 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
     if (!parsed || nextErrors.title) return;
 
     setFormError(null);
+    setNeedsReload(false);
     setTimeAdjustment(
       parsed.adjusted
         ? `Este horário foi ajustado para ${formatTime(parsed.date.toISOString())} no fuso do seu dispositivo.`
@@ -96,20 +111,26 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
     const controller = new AbortController();
     requestRef.current = controller;
 
+    const input = {
+      title: trimmedTitle,
+      startsAt: parsed.date.toISOString(),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
     try {
-      const savedEvent = await createEvent(
-        {
-          title: trimmedTitle,
-          startsAt: parsed.date.toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
-        controller.signal,
-      );
-      onCreated(savedEvent);
+      const savedEvent = event
+        ? await updateEvent(event.id, { ...input, version: event.version }, controller.signal)
+        : await createEvent(input, controller.signal);
+      onSaved(savedEvent);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       if (error instanceof ApiError && error.status === 401) {
         onSessionExpired();
+        return;
+      }
+      if (error instanceof ApiError && error.status === 409 && error.code === 'VERSION_CONFLICT') {
+        setFormError('Este evento foi alterado em outro dispositivo. Recarregue a agenda e tente novamente.');
+        setNeedsReload(true);
         return;
       }
       if (error instanceof ApiError) {
@@ -122,10 +143,16 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
         setFormError(
           error.field === 'timeZone'
             ? 'O fuso horário deste dispositivo não pôde ser enviado. Atualize o navegador e tente novamente.'
-            : error.message ?? 'Não foi possível salvar o evento.',
+            : error.message ?? (event ? 'Não foi possível alterar o evento.' : 'Não foi possível salvar o evento.'),
         );
       } else {
-        setFormError(error instanceof Error ? error.message : 'Não foi possível salvar o evento.');
+        setFormError(
+          error instanceof Error
+            ? error.message
+            : event
+              ? 'Não foi possível alterar o evento.'
+              : 'Não foi possível salvar o evento.',
+        );
       }
     } finally {
       requestRef.current = null;
@@ -137,8 +164,8 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
     <dialog
       className="event-dialog"
       ref={dialogRef}
-      onCancel={(event) => {
-        event.preventDefault();
+      onCancel={(cancelEvent) => {
+        cancelEvent.preventDefault();
         closeForm();
       }}
     >
@@ -146,16 +173,23 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
         <button className="dialog-close" type="button" aria-label="Fechar formulário" onClick={closeForm}>
           ×
         </button>
-        <p className="eyebrow">Novo evento</p>
-        <h2>O que você planejou?</h2>
+        <p className="eyebrow">{event ? 'Editar evento' : 'Novo evento'}</p>
+        <h2>{event ? 'Ajustar este evento' : 'O que você planejou?'}</h2>
         <p className="event-dialog-subtitle">
-          Informe a data e a hora no fuso deste dispositivo. O evento será salvo como um horário fixo.
+          {event
+            ? `O evento foi salvo em ${event.timeZone}. Os campos abaixo usam o fuso deste dispositivo; ao salvar, ele passa a ser a referência.`
+            : 'Informe a data e a hora no fuso deste dispositivo. O evento será salvo como um horário fixo.'}
         </p>
 
         {formError ? <p className="form-error" role="alert">{formError}</p> : null}
+        {needsReload ? (
+          <Button variant="secondary" onClick={onConflict}>
+            Recarregar agenda
+          </Button>
+        ) : null}
         {timeAdjustment ? <p className="notice notice-warning" role="status">{timeAdjustment}</p> : null}
 
-        <form className="event-form" onSubmit={(event) => void handleSubmit(event)} noValidate>
+        <form className="event-form" onSubmit={(submitEvent) => void handleSubmit(submitEvent)} noValidate>
           <TextField
             id="event-title"
             label="Título"
@@ -198,7 +232,7 @@ export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpi
             />
           </div>
           <Button type="submit" className="submit-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando…' : 'Salvar evento'}
+            {isSubmitting ? 'Salvando…' : event ? 'Salvar alterações' : 'Salvar evento'}
           </Button>
         </form>
       </div>

@@ -71,3 +71,40 @@ export async function createEvent(
 
   return body.event;
 }
+
+export async function updateEvent(
+  id: string,
+  input: {
+    title: string;
+    startsAt: string;
+    timeZone: string;
+    version: number;
+  },
+  signal?: AbortSignal,
+): Promise<CalendarEvent> {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/events/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(input),
+      signal,
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new Error('Não foi possível conectar ao maxlendar. Verifique sua conexão.');
+  }
+
+  if (!response.ok) {
+    throw await readApiError(response);
+  }
+
+  const body = (await response.json()) as { event?: CalendarEvent };
+  if (!body.event) {
+    throw new Error('O servidor não confirmou o evento alterado. Tente novamente.');
+  }
+
+  return body.event;
+}

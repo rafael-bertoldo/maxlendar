@@ -33,6 +33,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
 
   const range = useMemo(() => rangeForView(view, anchor), [view, anchor]);
@@ -67,11 +68,30 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     return () => window.clearTimeout(timer);
   }, [savedNotice]);
 
-  function handleEventCreated(event: CalendarEvent) {
+  function openCreateForm() {
+    setEditingEvent(null);
+    setIsEventFormOpen(true);
+  }
+
+  function openEditForm(event: CalendarEvent) {
+    setEditingEvent(event);
+    setIsEventFormOpen(true);
+  }
+
+  function handleEventSaved(event: CalendarEvent) {
+    const wasEditing = editingEvent !== null;
     setIsEventFormOpen(false);
-    setSavedNotice('Evento salvo na sua agenda.');
-    setView('day');
+    setEditingEvent(null);
+    setSavedNotice(wasEditing ? 'Alterações salvas na sua agenda.' : 'Evento salvo na sua agenda.');
+    if (!wasEditing) setView('day');
     setAnchor(new Date(event.startsAt));
+    setReloadCount((count) => count + 1);
+  }
+
+  function handleVersionConflict() {
+    setIsEventFormOpen(false);
+    setEditingEvent(null);
+    setSavedNotice('Agenda recarregada. Confira a versão mais recente do evento.');
     setReloadCount((count) => count + 1);
   }
 
@@ -156,7 +176,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
             </Button>
           </div>
 
-          <Button className="new-event-button" onClick={() => setIsEventFormOpen(true)}>
+          <Button className="new-event-button" onClick={openCreateForm}>
             Novo evento
           </Button>
         </div>
@@ -180,14 +200,14 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         ) : (
           <>
             {events.length === 0 ? (
-              <EmptyCalendarState onCreate={() => setIsEventFormOpen(true)} />
+              <EmptyCalendarState onCreate={openCreateForm} />
             ) : null}
             {view === 'day' ? (
-              <DayView days={range.days} events={events} />
+              <DayView days={range.days} events={events} onEdit={openEditForm} />
             ) : view === 'week' ? (
-              <WeekView days={range.days} events={events} />
+              <WeekView days={range.days} events={events} onEdit={openEditForm} />
             ) : (
-              <MonthView anchor={anchor} days={range.days} events={events} />
+              <MonthView anchor={anchor} days={range.days} events={events} onEdit={openEditForm} />
             )}
           </>
         )}
@@ -196,8 +216,10 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
       <EventForm
         open={isEventFormOpen}
         initialDate={anchor}
+        event={editingEvent ?? undefined}
         onClose={() => setIsEventFormOpen(false)}
-        onCreated={handleEventCreated}
+        onSaved={handleEventSaved}
+        onConflict={handleVersionConflict}
         onSessionExpired={onSessionExpired}
       />
     </main>

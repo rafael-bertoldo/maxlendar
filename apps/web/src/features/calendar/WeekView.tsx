@@ -5,9 +5,10 @@ import { EventItem } from './EventItem';
 type WeekViewProps = {
   days: Date[];
   events: CalendarEvent[];
+  onEdit: (event: CalendarEvent) => void;
 };
 
-export function WeekView({ days, events }: WeekViewProps) {
+export function WeekView({ days, events, onEdit }: WeekViewProps) {
   const eventsByDay = new Map<string, CalendarEvent[]>();
 
   for (const event of events) {
@@ -31,7 +32,7 @@ export function WeekView({ days, events }: WeekViewProps) {
             </h3>
             <div className="week-events">
               {dayEvents.length > 0 ? (
-                dayEvents.map((event) => <EventItem key={event.id} event={event} compact />)
+                dayEvents.map((event) => <EventItem key={event.id} event={event} compact onEdit={onEdit} />)
               ) : (
                 <span className="day-empty" aria-hidden="true">—</span>
               )}

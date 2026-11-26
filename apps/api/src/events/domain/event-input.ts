@@ -42,6 +42,14 @@ export function readTimeZone(value: unknown): string {
   return timeZone;
 }
 
+export function readVersion(value: unknown): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw validationError("version", "A valid event version is required.");
+  }
+
+  return value;
+}
+
 export function readInstant(value: unknown, field: string): Date {
   if (typeof value !== "string") {
     throw validationError(field, "A valid date and time are required.");

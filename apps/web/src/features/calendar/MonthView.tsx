@@ -6,9 +6,10 @@ type MonthViewProps = {
   anchor: Date;
   days: Date[];
   events: CalendarEvent[];
+  onEdit: (event: CalendarEvent) => void;
 };
 
-export function MonthView({ anchor, days, events }: MonthViewProps) {
+export function MonthView({ anchor, days, events, onEdit }: MonthViewProps) {
   const eventsByDay = new Map<string, CalendarEvent[]>();
 
   for (const event of events) {
@@ -40,7 +41,7 @@ export function MonthView({ anchor, days, events }: MonthViewProps) {
               <span className="month-day-number">{day.getDate()}</span>
               <div className="month-events">
                 {dayEvents.map((event) => (
-                  <EventItem key={event.id} event={event} compact />
+                  <EventItem key={event.id} event={event} compact onEdit={onEdit} />
                 ))}
               </div>
             </section>

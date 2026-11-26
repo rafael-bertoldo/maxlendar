@@ -4,6 +4,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -13,11 +15,19 @@ import { SessionGuard } from "../../auth/delivery/session.guard";
 import type { AuthenticatedRequest } from "../../auth/delivery/session.guard";
 import { CreateEvent } from "../application/create-event";
 import { ListEvents } from "../application/list-events";
+import { UpdateEvent } from "../application/update-event";
 
 interface CreateEventBody {
   title?: unknown;
   startsAt?: unknown;
   timeZone?: unknown;
+}
+
+interface UpdateEventBody {
+  title?: unknown;
+  startsAt?: unknown;
+  timeZone?: unknown;
+  version?: unknown;
 }
 
 @Controller("events")
@@ -26,6 +36,7 @@ export class EventsController {
   constructor(
     private readonly createEvent: CreateEvent,
     private readonly listEvents: ListEvents,
+    private readonly updateEvent: UpdateEvent,
   ) {}
 
   @Post()
@@ -36,6 +47,23 @@ export class EventsController {
       title: body?.title,
       startsAt: body?.startsAt,
       timeZone: body?.timeZone,
+    });
+    return { event };
+  }
+
+  @Patch(":id")
+  async update(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Body() body: UpdateEventBody,
+  ) {
+    const event = await this.updateEvent.execute({
+      userId: request.sessionUser.id,
+      id,
+      title: body?.title,
+      startsAt: body?.startsAt,
+      timeZone: body?.timeZone,
+      version: body?.version,
     });
     return { event };
   }

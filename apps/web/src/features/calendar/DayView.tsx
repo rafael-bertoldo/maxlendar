@@ -5,11 +5,12 @@ import { EventItem } from './EventItem';
 type DayViewProps = {
   days: Date[];
   events: CalendarEvent[];
+  onEdit: (event: CalendarEvent) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
-export function DayView({ days, events }: DayViewProps) {
+export function DayView({ days, events, onEdit }: DayViewProps) {
   const day = days[0];
   const eventsByHour = new Map<number, CalendarEvent[]>();
 
@@ -31,7 +32,7 @@ export function DayView({ days, events }: DayViewProps) {
             </span>
             <div className="day-slot">
               {(eventsByHour.get(hour) ?? []).map((event) => (
-                <EventItem key={event.id} event={event} />
+                <EventItem key={event.id} event={event} onEdit={onEdit} />
               ))}
             </div>
           </div>
