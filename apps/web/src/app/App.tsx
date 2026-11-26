@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SignupForm } from '../features/auth/SignupForm';
 import { SigninForm } from '../features/auth/SigninForm';
-import { AuthSuccess } from '../features/auth/AuthSuccess';
+import { CalendarPage } from '../features/calendar/CalendarPage';
 import { InstallAppControl } from '../features/pwa/InstallAppControl';
 
 type AuthMode = 'signup' | 'signin';
@@ -10,8 +10,8 @@ type AuthOutcome = 'created' | 'signed-in';
 export function App() {
   const [mode, setMode] = useState<AuthMode>('signup');
   const [authenticatedUsername, setAuthenticatedUsername] = useState<string | null>(null);
-  const [authOutcome, setAuthOutcome] = useState<AuthOutcome>('created');
   const [signinUsername, setSigninUsername] = useState('');
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionCheckError, setSessionCheckError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export function App() {
           const body = (await response.json()) as { user?: { username: string } };
           if (body.user?.username) {
             setAuthenticatedUsername(body.user.username);
-            setAuthOutcome('signed-in');
+            setAuthNotice('Você entrou na sua agenda.');
           }
         }
       } catch {
@@ -48,11 +48,18 @@ export function App() {
   }, []);
 
   function handleAuthenticated(username: string, outcome: AuthOutcome) {
-    setAuthOutcome(outcome);
     setAuthenticatedUsername(username);
+    setAuthNotice(outcome === 'created' ? 'Conta criada. Sua agenda está pronta.' : 'Você entrou na sua agenda.');
     setSessionCheckError(null);
     setIsCheckingSession(false);
   }
+
+  const handleSessionExpired = useCallback(() => {
+    setSigninUsername(authenticatedUsername ?? '');
+    setAuthenticatedUsername(null);
+    setAuthNotice(null);
+    setMode('signin');
+  }, [authenticatedUsername]);
 
   async function handleSignOut() {
     if (!authenticatedUsername) return;
@@ -69,7 +76,7 @@ export function App() {
       setSigninUsername(authenticatedUsername);
       setMode('signin');
       setAuthenticatedUsername(null);
-      setAuthOutcome('signed-in');
+      setAuthNotice(null);
     } catch {
       throw new Error('Não foi possível sair da conta. Tente novamente.');
     }
@@ -90,10 +97,11 @@ export function App() {
   if (authenticatedUsername) {
     return (
       <>
-        <AuthSuccess
+        <CalendarPage
           username={authenticatedUsername}
-          outcome={authOutcome}
+          notice={authNotice}
           onSignOut={handleSignOut}
+          onSessionExpired={handleSessionExpired}
         />
         <InstallAppControl />
       </>

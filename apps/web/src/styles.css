@@ -152,11 +152,62 @@ button { cursor: pointer; }
 .loading-indicator { width: 28px; height: 28px; margin-bottom: 16px; border: 2px solid #dedcf8; border-top-color: var(--violet); border-radius: 50%; animation: spin 800ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.calendar-layout { min-height: 100vh; padding: 18px; background: radial-gradient(circle at top left, #efeeff, transparent 38%), #f7f8fc; }
+.calendar-topbar { display: flex; max-width: 1180px; align-items: center; justify-content: space-between; gap: 16px; margin: 0 auto 28px; }
+.calendar-brand { display: inline-flex; align-items: center; gap: 11px; color: #343466; font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: -0.7px; }
+.calendar-account { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.account-avatar { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 10px; color: #fff; background: var(--violet); font-size: 13px; font-weight: 700; }
+.calendar-account .button { min-height: 34px; padding: 0 14px; }
+.calendar-intro { max-width: 1180px; margin: 0 auto 20px; }
+.calendar-intro h1 { margin: 0; font-family: var(--font-display); font-size: clamp(26px, 3vw, 36px); font-weight: 700; letter-spacing: -1.3px; }
+.calendar-notice { width: fit-content; margin: 12px 0 0; padding: 9px 12px; border-radius: 8px; color: #3e6c55; background: #eaf8f0; font-size: 12px; }
+.calendar-intro .form-error { margin: 12px 0 0; }
+.calendar-panel { max-width: 1180px; margin: 0 auto; padding: 20px; border: 1px solid #eaebf3; border-radius: 18px; background: #fff; box-shadow: 0 16px 60px #36385a0b; }
+.calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.view-switcher { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #f2f3f9; }
+.view-button { min-height: 34px; padding: 0 14px; border: 0; border-radius: 8px; color: #6c7489; background: transparent; font-size: 12px; font-weight: 700; }
+.view-button.is-active { color: #fff; background: var(--violet); box-shadow: 0 4px 12px #6c62df33; }
+.view-button:focus-visible, .range-arrow:focus-visible { outline: 3px solid #aaa4ff; outline-offset: 2px; }
+.range-navigation { display: flex; align-items: center; gap: 8px; }
+.range-navigation h2 { min-width: 210px; margin: 0; font-family: var(--font-display); font-size: 14px; text-align: center; letter-spacing: -0.2px; }
+.range-arrow { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font-size: 20px; line-height: 1; }
+.range-navigation .button { min-height: 32px; padding: 0 12px; }
+.calendar-status { display: flex; min-height: 340px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 13px; }
+.calendar-status .button { min-height: 34px; padding: 0 14px; }
+.empty-mark { color: #b8bce8; font-size: 28px; }
+.view-caption { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+.day-grid { max-height: 560px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; }
+.day-row { display: grid; min-height: 52px; grid-template-columns: 72px 1fr; border-bottom: 1px solid #f0f1f6; }
+.day-row:last-child { border-bottom: 0; }
+.day-hour { padding: 12px 12px 0; color: #a5abbd; font-size: 11px; }
+.day-slot { display: flex; flex-direction: column; gap: 6px; padding: 7px 10px; }
+.event-item { display: flex; width: fit-content; min-height: 32px; align-items: center; gap: 10px; padding: 6px 10px; border-left: 3px solid var(--violet); border-radius: 6px; background: #f1f0ff; font-size: 12px; }
+.event-time { color: var(--violet-dark); font-weight: 700; }
+.event-title { color: var(--ink); font-weight: 600; }
+.event-item-compact { width: 100%; min-height: 26px; gap: 6px; padding: 4px 7px; border-left-width: 2px; font-size: 10px; }
+.week-view { display: grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.week-column { min-width: 110px; padding: 12px 8px; border-right: 1px solid #eef0f6; }
+.week-column:last-child { border-right: 0; }
+.week-day-heading { display: flex; flex-direction: column; align-items: center; gap: 3px; margin: 0 0 12px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; }
+.week-day-heading strong { color: var(--ink); font-family: var(--font-display); font-size: 18px; }
+.week-events { display: flex; min-height: 300px; flex-direction: column; gap: 6px; }
+.day-empty { color: #d3d6e2; text-align: center; }
+.month-weekdays { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); overflow-x: auto; margin-bottom: 8px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-align: center; text-transform: uppercase; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.month-cell { min-height: 106px; padding: 8px; border-right: 1px solid #eef0f6; border-bottom: 1px solid #eef0f6; }
+.month-cell:nth-child(7n) { border-right: 0; }
+.month-cell-outside { background: #fafbfe; }
+.month-cell-outside .month-day-number { color: #b9bfd0; }
+.month-day-number { display: block; margin-bottom: 6px; color: #5d6580; font-size: 11px; font-weight: 700; }
+.month-events { display: flex; flex-direction: column; gap: 4px; }
+.month-more { color: var(--violet-dark); font-size: 10px; font-weight: 700; }
+
 @media (max-width: 860px) {
   .auth-layout { grid-template-columns: minmax(260px, 0.75fr) minmax(380px, 1.25fr); }
   .auth-aside { padding: 32px 28px; }
   .auth-main { padding: 36px 34px; }
   .aside-copy h1 { font-size: clamp(40px, 6vw, 58px); letter-spacing: -3px; }
+  .range-navigation h2 { min-width: 170px; }
 }
 
 @media (max-width: 640px) {
@@ -169,6 +220,14 @@ button { cursor: pointer; }
   .auth-main > .install-control { margin-bottom: max(4px, env(safe-area-inset-bottom)); }
   .auth-heading h2 { font-size: 28px; }
   .success-card { padding: 42px 26px; }
+  .calendar-layout { padding: 12px; }
+  .calendar-topbar { margin-bottom: 22px; }
+  .account-name { display: none; }
+  .calendar-panel { padding: 12px; }
+  .calendar-toolbar { align-items: stretch; }
+  .range-navigation { width: 100%; }
+  .range-navigation h2 { flex: 1; min-width: 0; font-size: 13px; }
+  .calendar-status { min-height: 240px; }
 }
 
 @media (display-mode: standalone) {
