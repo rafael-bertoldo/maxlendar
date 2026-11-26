@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maxlendar-shell-v1';
+const CACHE_NAME = 'maxlendar-shell-v2';
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -55,4 +55,44 @@ self.addEventListener('fetch', (event) => {
       })),
     );
   }
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+
+  const title = typeof payload.title === 'string' ? payload.title : 'maxlendar';
+  const body = typeof payload.body === 'string' ? payload.body : 'Você tem um evento próximo.';
+  const target = typeof payload.url === 'string' ? payload.url : '/';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: 'maxlendar-reminder',
+      data: { url: target, eventId: payload.eventId },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const target = new URL(event.notification.data?.url || '/', self.location.origin);
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          void client.focus();
+          return client.navigate(target.href);
+        }
+      }
+      return self.clients.openWindow(target.href);
+    }),
+  );
 });

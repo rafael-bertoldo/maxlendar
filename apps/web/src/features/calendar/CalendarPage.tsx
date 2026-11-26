@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { listEvents, type CalendarEvent } from '../../shared/api/events';
+import {
+  blockedPushStatus,
+  enablePush,
+  pushIsSupported,
+  readPushStatus,
+  unsupportedPushStatus,
+  type PushStatus,
+} from '../../shared/api/push';
 import { EventForm } from '../events/EventForm';
 import {
   CALENDAR_VIEWS,
@@ -35,6 +43,9 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const lastSyncRef = useRef(0);
   const hasLoadedRef = useRef(false);
 
@@ -72,6 +83,41 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     const timer = window.setTimeout(() => setSavedNotice(null), 6000);
     return () => window.clearTimeout(timer);
   }, [savedNotice]);
+
+  useEffect(() => {
+    let active = true;
+
+    function applyStatus(status: PushStatus) {
+      if (active) setPushStatus(status);
+    }
+
+    void readPushStatus().then(applyStatus).catch(() => {
+      applyStatus({
+        kind: 'inactive',
+        message: 'Não foi possível consultar o estado dos lembretes neste dispositivo.',
+      });
+    });
+
+    function checkPermission() {
+      if (!pushIsSupported()) {
+        applyStatus(unsupportedPushStatus());
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        applyStatus(blockedPushStatus());
+        return;
+      }
+      void readPushStatus().then(applyStatus).catch(() => undefined);
+    }
+
+    window.addEventListener('focus', checkPermission);
+    document.addEventListener('visibilitychange', checkPermission);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', checkPermission);
+      document.removeEventListener('visibilitychange', checkPermission);
+    };
+  }, []);
 
   useEffect(() => {
     function syncOnFocus() {
@@ -122,6 +168,26 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     setEditingEvent(null);
     setSavedNotice('Agenda recarregada. Confira a versão mais recente do evento.');
     setReloadCount((count) => count + 1);
+  }
+
+  async function handleEnablePush() {
+    setIsEnablingPush(true);
+    setPushError(null);
+    try {
+      const status = await enablePush();
+      setPushStatus(status);
+      if (status.kind === 'unavailable' || status.kind === 'blocked' || status.kind === 'unsupported') {
+        setPushError(status.message);
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+      setPushError(error instanceof Error ? error.message : 'Não foi possível ativar os lembretes.');
+    } finally {
+      setIsEnablingPush(false);
+    }
   }
 
   async function handleSignOut() {
@@ -216,6 +282,31 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
             {' '}A agenda atualiza ao abrir ou voltar a esta aba; abas em segundo plano podem ficar desatualizadas.
           </span>
         </p>
+
+        <div className="push-row">
+          <Button
+            variant="secondary"
+            onClick={() => void handleEnablePush()}
+            disabled={
+              isEnablingPush ||
+              pushStatus?.kind === 'active' ||
+              pushStatus?.kind === 'unsupported' ||
+              pushStatus?.kind === 'blocked'
+            }
+          >
+            {isEnablingPush
+              ? 'Ativando…'
+              : pushStatus?.kind === 'active'
+                ? 'Lembretes ativos'
+                : 'Ativar lembretes'}
+          </Button>
+          <p
+            className={pushError || pushStatus?.kind === 'blocked' ? 'push-status is-warning' : 'push-status'}
+            role={pushError || pushStatus?.kind === 'blocked' ? 'alert' : 'status'}
+          >
+            {pushError ?? pushStatus?.message ?? 'Consultando disponibilidade dos lembretes…'}
+          </p>
+        </div>
 
         {loadError ? (
           <div className="calendar-status" role="alert">

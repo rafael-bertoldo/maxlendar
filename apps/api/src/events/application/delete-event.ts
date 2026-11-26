@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { ReminderService } from "../../reminders/reminder.service";
 import { readVersionParam } from "../domain/event-input";
 
 export interface DeleteEventInput {
@@ -10,7 +11,10 @@ export interface DeleteEventInput {
 
 @Injectable()
 export class DeleteEvent {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reminders: ReminderService,
+  ) {}
 
   async execute(input: DeleteEventInput): Promise<{ ok: true }> {
     const expectedVersion = readVersionParam(input.version);
@@ -49,6 +53,8 @@ export class DeleteEvent {
         message: "This event was changed on another device. Reload and try again.",
       });
     }
+
+    await this.reminders.cancel(existing.id);
 
     return { ok: true };
   }

@@ -11,9 +11,11 @@ model User {
   id           String    @id @default(cuid())
   username     String    @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
-  calendar     Calendar?
-  sessions     Session[]
+  createdAt        DateTime          @default(now())
+  calendar         Calendar?
+  sessions         Session[]
+  pushSubscriptions PushSubscription[]
+  reminders        Reminder[]
 }
 
 model Calendar {
@@ -41,8 +43,38 @@ model CalendarEvent {
   startsAt         DateTime
   creationTimeZone String
   version          Int      @default(1)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  reminders        Reminder[]
 
   @@index([calendarId, startsAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Reminder {
+  id           String        @id @default(cuid())
+  eventId      String
+  event        CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offsetMinutes Int
+  scheduledFor DateTime
+  status       String        @default("pending")
+  sentAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([scheduledFor, status])
+  @@index([eventId, status])
 }

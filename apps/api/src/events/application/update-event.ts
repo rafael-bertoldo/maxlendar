@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { ReminderService } from "../../reminders/reminder.service";
 import { readInstant, readTimeZone, readTitle, readVersion } from "../domain/event-input";
 import type { CalendarEventDto } from "./event-dto";
 
@@ -14,7 +15,10 @@ export interface UpdateEventInput {
 
 @Injectable()
 export class UpdateEvent {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reminders: ReminderService,
+  ) {}
 
   async execute(input: UpdateEventInput): Promise<CalendarEventDto> {
     const title = readTitle(input.title);
@@ -80,6 +84,8 @@ export class UpdateEvent {
         message: "The event was not found.",
       });
     }
+
+    await this.reminders.schedule(event.id);
 
     return {
       id: event.id,

@@ -179,6 +179,10 @@ button { cursor: pointer; }
 .new-event-button { min-height: 34px; padding: 0 16px; }
 .calendar-timezone { margin: -6px 0 16px; color: var(--muted); font-size: 11px; }
 .calendar-sync-note { color: #5f667a; }
+.push-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -8px 0 16px; }
+.push-row .button { min-height: 30px; padding: 0 12px; font-size: 11px; }
+.push-status { margin: 0; color: #5f667a; font-size: 11px; line-height: 1.45; }
+.push-status.is-warning { padding: 6px 9px; border-radius: 7px; color: #7d472f; background: #fff4e8; }
 .calendar-status { display: flex; min-height: 340px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .calendar-status .button { min-height: 34px; padding: 0 14px; }
 .calendar-empty-state { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 12px 14px; border-radius: 10px; background: #f7f8fc; }

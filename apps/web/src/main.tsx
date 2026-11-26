@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import './styles.css';
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+if ((import.meta.env.PROD || import.meta.env.VITE_ENABLE_PUSH === '1') && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('/sw.js').catch((error: unknown) => {
       console.error('Service worker registration failed.', error);

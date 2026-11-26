@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
+import { ReminderService } from "../../reminders/reminder.service";
 import { readInstant, readTimeZone, readTitle } from "../domain/event-input";
 import type { CalendarEventDto } from "./event-dto";
 
@@ -12,7 +13,10 @@ export interface CreateEventInput {
 
 @Injectable()
 export class CreateEvent {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reminders: ReminderService,
+  ) {}
 
   async execute(input: CreateEventInput): Promise<CalendarEventDto> {
     const title = readTitle(input.title);
@@ -46,6 +50,8 @@ export class CreateEvent {
         version: true,
       },
     });
+
+    await this.reminders.schedule(event.id);
 
     return {
       id: event.id,

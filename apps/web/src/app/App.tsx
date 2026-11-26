@@ -3,6 +3,7 @@ import { SignupForm } from '../features/auth/SignupForm';
 import { SigninForm } from '../features/auth/SigninForm';
 import { CalendarPage } from '../features/calendar/CalendarPage';
 import { InstallAppControl } from '../features/pwa/InstallAppControl';
+import { removeCurrentPushSubscription } from '../shared/api/push';
 
 type AuthMode = 'signup' | 'signin';
 type AuthOutcome = 'created' | 'signed-in';
@@ -66,6 +67,7 @@ export function App() {
     if (!authenticatedUsername) return;
 
     try {
+      await removeCurrentPushSubscription();
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
