@@ -9,6 +9,7 @@ import {
   unsupportedPushStatus,
   type PushStatus,
 } from '../../shared/api/push';
+import { AssistantPanel } from '../assistant/AssistantPanel';
 import { EventForm } from '../events/EventForm';
 import {
   CALENDAR_VIEWS,
@@ -170,6 +171,22 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     setReloadCount((count) => count + 1);
   }
 
+  function handleAssistantApplied(event: CalendarEvent) {
+    setIsEventFormOpen(false);
+    setEditingEvent(null);
+    setSavedNotice('Alteração do assistente aplicada à sua agenda.');
+    setView('day');
+    setAnchor(new Date(event.startsAt));
+    setReloadCount((count) => count + 1);
+  }
+
+  function handleAssistantDeleted() {
+    setIsEventFormOpen(false);
+    setEditingEvent(null);
+    setSavedNotice('Evento excluído pelo assistente.');
+    setReloadCount((count) => count + 1);
+  }
+
   async function handleEnablePush() {
     setIsEnablingPush(true);
     setPushError(null);
@@ -231,6 +248,13 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         ) : null}
         {signOutError ? <p className="form-error" role="alert">{signOutError}</p> : null}
       </section>
+
+      <AssistantPanel
+        timeZone={viewerTimeZone}
+        onApplied={handleAssistantApplied}
+        onDeleted={handleAssistantDeleted}
+        onSessionExpired={onSessionExpired}
+      />
 
       <section className="calendar-panel" aria-label="Calendário">
         <div className="calendar-toolbar">
