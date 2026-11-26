@@ -178,7 +178,7 @@ button { cursor: pointer; }
 .range-navigation .button { min-height: 32px; padding: 0 12px; }
 .new-event-button { min-height: 34px; padding: 0 16px; }
 .calendar-timezone { margin: -6px 0 16px; color: var(--muted); font-size: 11px; }
-.calendar-sync-note { color: #8d93a6; }
+.calendar-sync-note { color: #5f667a; }
 .calendar-status { display: flex; min-height: 340px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .calendar-status .button { min-height: 34px; padding: 0 14px; }
 .calendar-empty-state { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 12px 14px; border-radius: 10px; background: #f7f8fc; }

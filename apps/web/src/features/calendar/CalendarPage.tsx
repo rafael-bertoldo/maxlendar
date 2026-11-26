@@ -36,17 +36,21 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const lastSyncRef = useRef(0);
+  const hasLoadedRef = useRef(false);
 
   const range = useMemo(() => rangeForView(view, anchor), [view, anchor]);
 
   useEffect(() => {
     const controller = new AbortController();
-    setIsLoading(true);
+    setIsLoading((current) => current || !hasLoadedRef.current);
     setLoadError(null);
 
     listEvents(range.from, range.to, controller.signal)
       .then((loadedEvents) => {
-        if (!controller.signal.aborted) setEvents(loadedEvents);
+        if (!controller.signal.aborted) {
+          hasLoadedRef.current = true;
+          setEvents(loadedEvents);
+        }
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
