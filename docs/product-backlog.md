@@ -62,7 +62,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - When I open the calendar, then the day view is selected by default.
 - When I choose week or month, then the calendar displays the corresponding range.
 - When I navigate between ranges, then the displayed events correspond to the selected range.
-- **Open decision:** The cross-device time-zone display rule is unresolved and must be decided before finalizing expected event placement in calendar views.
+- **Decided 2026-11-26:** Events are stored as fixed instants and displayed in the viewer's local time zone ([ADR 0004](decisions/0004-event-time-zone.md)).
+- **Decided 2026-11-26:** The week starts on Monday.
 
 ### US-06 — Create a one-off event manually
 
@@ -73,7 +74,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given I am signed in, when I submit a title, date, and time, then one event is created in my calendar.
 - Given a required field is missing or invalid, when I submit the form, then the event is not created and I am shown which input needs attention.
 - When I view the saved event, then it represents one point in time and has no recurrence, description, location, duration, or end time in the MVP.
-- **Open decision:** Date/time interpretation across devices, including daylight-saving transitions, remains unresolved. Input and validation details should follow the eventual time-zone decision.
+- **Decided 2026-11-26:** The device converts the entered date/time in its local zone to an ISO instant; the calendar displays that instant in the viewer's zone ([ADR 0004](decisions/0004-event-time-zone.md)).
 
 ### US-07 — View events in my calendar
 
@@ -84,7 +85,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given my calendar has events in the selected day, week, or month range, when I view that range, then its events are displayed.
 - Given there are no events in the selected range, when I view it, then the calendar displays an empty state.
 - When events are displayed, then each event's title and scheduled date/time are visible.
-- **Open decision:** Exact sorting and cross-time-zone display behavior are not specified.
+- **MVP rule 2026-11-26:** Events are sorted by scheduled instant ascending; display uses the viewer's local time zone ([ADR 0004](decisions/0004-event-time-zone.md)).
 
 ### US-08 — Edit a saved event
 
@@ -190,7 +191,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 ## Open product and delivery questions
 
 1. What username formats, lengths, normalization rules, reserved names, and minimum password input requirements should be supported?
-2. How should events be displayed when the user views the calendar in a different time zone, and how should daylight-saving ambiguous/nonexistent local times be handled?
+2. ~~How should events be displayed when the user views the calendar in a different time zone, and how should daylight-saving ambiguous/nonexistent local times be handled?~~ Resolved for the MVP in [ADR 0004](decisions/0004-event-time-zone.md): fixed instant displayed in the viewer's zone, with browser-side conversion of local input.
 3. What should happen when push permission is denied, unavailable, or revoked, and which browser/platform combinations are supported?
 4. How quickly must changes appear on other devices, and how should concurrent edits be surfaced or resolved?
 5. What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?

@@ -100,7 +100,7 @@ Candidate entities:
 - `ReminderDelivery`: event, reminder offset, due instant, status, attempt count, and idempotency key.
 - `AssistantProposal`: user, action, target event/version, proposed fields, status, and expiry until user confirmation.
 
-The product brief says to interpret the entered date/time in the creating device's local zone, while display behavior on a device in another zone is unresolved. The client should send an explicit IANA time-zone identifier along with local date/time. Before finalizing the event schema, decide whether events represent a fixed instant (recommended for reminders) and are displayed in each viewer's local zone, or preserve the original wall-clock time across zones. Handle ambiguous/nonexistent local times around daylight-saving transitions explicitly.
+The user decided that events are fixed instants displayed in each viewer's local time zone, while the creating device's IANA time zone is kept as provenance. See [ADR 0004](../decisions/0004-event-time-zone.md). The client converts local date/time input to an ISO instant with an explicit offset; the API stores and queries the instant in UTC. Daylight-saving ambiguous/nonexistent input times are resolved by the browser's `Date` conversion in the MVP. Calendar ranges are half-open intervals, and the week starts on Monday.
 
 ## API and synchronization
 
@@ -159,7 +159,7 @@ Do not choose a provider, model, prompt orchestration framework, or retrieval sy
 - Hosting/deployment provider; it must supply an always-on process, persistent disk, and backup path.
 - AI provider/model and how representative quality examples will be evaluated.
 - Web Push provider configuration, browser support matrix, and notification permission-denied UX.
-- Final cross-time-zone display and daylight-saving behavior.
+- Portability of browser-specific daylight-saving input normalization across devices.
 - The user-selected session behavior is no automatic expiry with independent logout per device. Any proposed change to expiry behavior needs a product decision; the mechanism for secure persistence still requires architecture review.
 - Whether synchronization must be immediate (SSE) or can refresh on app focus.
 - Username normalization, length, allowed characters, and rate limits.
@@ -171,5 +171,6 @@ The user-selected backend framework and database are recorded in:
 - [`0001-nestjs-backend.md`](../decisions/0001-nestjs-backend.md)
 - [`0002-sqlite-database.md`](../decisions/0002-sqlite-database.md)
 - [`0003-prisma-orm.md`](../decisions/0003-prisma-orm.md)
+- [`0004-event-time-zone.md`](../decisions/0004-event-time-zone.md) for the selected event instant and viewer time-zone display rule.
 
 Create further ADRs if implementation requires a decision on sessions, time-zone semantics, push/synchronization, or the AI provider.
