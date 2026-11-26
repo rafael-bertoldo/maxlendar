@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-08 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-09 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0006.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -118,6 +118,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - When an event is deleted, then its pending reminders are canceled.
 - **Decided 2026-11-26:** Manual deletion requires explicit confirmation showing the target event; deletion uses optimistic versioning with `409 VERSION_CONFLICT` ([ADR 0006](decisions/0006-event-deletion.md)).
 - **Deferred 2026-11-26:** Reminder cancellation depends on US-11; US-09 acceptance covers the event record only and QA must mark this criterion as not executable yet.
+
+**Delivery:** Implemented in `5969035`, adjusted in `59ab350`; QA report: [US-09](qa/US-09.md). Reminder criterion remains deferred to US-11.
 
 ### US-10 — Synchronize calendar changes across devices
 
