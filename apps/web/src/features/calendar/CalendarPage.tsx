@@ -11,6 +11,7 @@ import {
 } from '../../shared/lib/calendar';
 import { Button } from '../../shared/ui/Button';
 import { DayView } from './DayView';
+import { EmptyCalendarState } from './EmptyCalendarState';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 
@@ -180,7 +181,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         ) : (
           <>
             {events.length === 0 ? (
-              <p className="calendar-empty" role="status">Nenhum evento neste período.</p>
+              <EmptyCalendarState onCreate={() => setIsEventFormOpen(true)} />
             ) : null}
             {view === 'day' ? (
               <DayView days={range.days} events={events} />

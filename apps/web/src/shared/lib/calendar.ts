@@ -121,6 +121,29 @@ export function formatTime(instant: string): string {
   }).format(new Date(instant));
 }
 
+export function formatEventDateTime(instant: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(instant));
+}
+
+export function formatInTimeZone(instant: string, timeZone: string): string | null {
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone,
+    }).format(new Date(instant));
+  } catch {
+    return null;
+  }
+}
+
 export function formatDayLabel(date: Date): string {
   const label = new Intl.DateTimeFormat('pt-BR', {
     weekday: 'short',
