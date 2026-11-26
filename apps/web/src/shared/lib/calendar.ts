@@ -122,12 +122,16 @@ export function formatTime(instant: string): string {
 }
 
 export function formatEventDateTime(instant: string): string {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(instant));
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(instant));
+  } catch {
+    return 'Data indisponível';
+  }
 }
 
 export function formatInTimeZone(instant: string, timeZone: string): string | null {

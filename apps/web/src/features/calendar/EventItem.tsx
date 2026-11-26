@@ -6,14 +6,26 @@ type EventItemProps = {
   compact?: boolean;
 };
 
-const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
 export function EventItem({ event, compact = false }: EventItemProps) {
-  const originalTime =
-    event.timeZone !== viewerTimeZone ? formatInTimeZone(event.startsAt, event.timeZone) : null;
-  const label = originalTime
-    ? `${event.title}, ${formatEventDateTime(event.startsAt)} no fuso ${viewerTimeZone}; horário original ${originalTime} em ${event.timeZone}`
-    : `${event.title}, ${formatEventDateTime(event.startsAt)} no fuso ${viewerTimeZone}`;
+  const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const hasDifferentTimeZone = event.timeZone !== viewerTimeZone;
+  const originalTime = hasDifferentTimeZone
+    ? formatInTimeZone(event.startsAt, event.timeZone)
+    : null;
+  const localTime = formatEventDateTime(event.startsAt);
+  const provenance = hasDifferentTimeZone
+    ? originalTime
+      ? `Horário original: ${originalTime} (${event.timeZone})`
+      : `Fuso original: ${event.timeZone} (horário indisponível)`
+    : null;
+  const compactProvenance = hasDifferentTimeZone
+    ? originalTime
+      ? `↔ ${originalTime} (${event.timeZone})`
+      : `↔ ${event.timeZone}`
+    : null;
+  const label = provenance
+    ? `${event.title}, ${localTime} no fuso ${viewerTimeZone}; ${provenance}`
+    : `${event.title}, ${localTime} no fuso ${viewerTimeZone}`;
 
   return (
     <article
@@ -21,15 +33,12 @@ export function EventItem({ event, compact = false }: EventItemProps) {
       aria-label={label}
     >
       <time className="event-time" dateTime={event.startsAt}>
-        {formatEventDateTime(event.startsAt)}
+        {localTime}
       </time>
       <span className="event-title">{event.title}</span>
-      {originalTime ? (
-        <span
-          className="event-origin"
-          title={`Horário original: ${originalTime} em ${event.timeZone}`}
-        >
-          {compact ? `↔ ${event.timeZone}` : `Horário original: ${originalTime} (${event.timeZone})`}
+      {provenance ? (
+        <span className="event-origin" title={provenance}>
+          {compact ? compactProvenance : provenance}
         </span>
       ) : null}
     </article>

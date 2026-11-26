@@ -22,9 +22,8 @@ type CalendarPageProps = {
   onSessionExpired: () => void;
 };
 
-const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
 export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: CalendarPageProps) {
+  const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [view, setView] = useState<CalendarView>('day');
   const [anchor, setAnchor] = useState(() => new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
