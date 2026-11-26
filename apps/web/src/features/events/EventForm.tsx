@@ -138,7 +138,8 @@ export function EventForm({
           setErrors({ title: error.message });
         }
         if (error.field === 'startsAt') {
-          setErrors({ date: 'Confira a data informada.', time: 'Confira o horário informado.' });
+          setFormError('Confira a data e o horário informados.');
+          return;
         }
         setFormError(
           error.field === 'timeZone'

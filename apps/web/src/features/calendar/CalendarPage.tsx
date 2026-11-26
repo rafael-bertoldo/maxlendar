@@ -217,7 +217,10 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         open={isEventFormOpen}
         initialDate={anchor}
         event={editingEvent ?? undefined}
-        onClose={() => setIsEventFormOpen(false)}
+        onClose={() => {
+          setIsEventFormOpen(false);
+          setEditingEvent(null);
+        }}
         onSaved={handleEventSaved}
         onConflict={handleVersionConflict}
         onSessionExpired={onSessionExpired}
