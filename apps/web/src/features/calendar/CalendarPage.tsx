@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { listEvents, type CalendarEvent } from '../../shared/api/events';
+import { EventForm } from '../events/EventForm';
 import {
   CALENDAR_VIEWS,
   formatRangeTitle,
@@ -31,6 +32,8 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
   const [reloadCount, setReloadCount] = useState(0);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
 
   const range = useMemo(() => rangeForView(view, anchor), [view, anchor]);
 
@@ -57,6 +60,20 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
 
     return () => controller.abort();
   }, [range.from, range.to, reloadCount, onSessionExpired]);
+
+  useEffect(() => {
+    if (!savedNotice) return;
+    const timer = window.setTimeout(() => setSavedNotice(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [savedNotice]);
+
+  function handleEventCreated(event: CalendarEvent) {
+    setIsEventFormOpen(false);
+    setSavedNotice('Evento salvo na sua agenda.');
+    setView('day');
+    setAnchor(new Date(event.startsAt));
+    setReloadCount((count) => count + 1);
+  }
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -94,8 +111,8 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
       <section className="calendar-intro">
         <p className="eyebrow">Sua agenda</p>
         <h1>O que está previsto?</h1>
-        {notice ? (
-          <p className="calendar-notice" role="status">{notice}</p>
+        {notice || savedNotice ? (
+          <p className="calendar-notice" role="status">{savedNotice ?? notice}</p>
         ) : null}
         {signOutError ? <p className="form-error" role="alert">{signOutError}</p> : null}
       </section>
@@ -138,6 +155,10 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
               Hoje
             </Button>
           </div>
+
+          <Button className="new-event-button" onClick={() => setIsEventFormOpen(true)}>
+            Novo evento
+          </Button>
         </div>
 
         <p className="calendar-timezone">
@@ -171,6 +192,13 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
           </>
         )}
       </section>
+
+      <EventForm
+        open={isEventFormOpen}
+        initialDate={anchor}
+        onClose={() => setIsEventFormOpen(false)}
+        onCreated={handleEventCreated}
+      />
     </main>
   );
 }

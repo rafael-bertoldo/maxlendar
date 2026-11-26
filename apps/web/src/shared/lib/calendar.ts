@@ -67,6 +67,47 @@ export function eventDateKey(instant: string): string {
   return localDateKey(new Date(instant));
 }
 
+export function toDateInputValue(date: Date): string {
+  return localDateKey(date);
+}
+
+export function toTimeInputValue(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+export function parseLocalDateTime(dateValue: string, timeValue: string): { date: Date; adjusted: boolean } | null {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeValue);
+  if (!dateMatch || !timeMatch) return null;
+
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+
+  const calendarParts = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  if (
+    calendarParts.getUTCFullYear() !== year ||
+    calendarParts.getUTCMonth() !== month - 1 ||
+    calendarParts.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+  const adjusted =
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute;
+
+  return { date, adjusted };
+}
+
 export function formatTime(instant: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     hour: '2-digit',

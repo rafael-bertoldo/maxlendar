@@ -4,13 +4,14 @@ type TextFieldProps = {
   name: string;
   value: string;
   onChange: (value: string) => void;
-  type?: 'text' | 'password';
+  type?: 'text' | 'password' | 'date' | 'time';
   autoComplete?: string;
   autoCapitalize?: string;
   autoCorrect?: string;
   spellCheck?: boolean;
   placeholder?: string;
   helperText?: string;
+  error?: string;
   required?: boolean;
 };
 
@@ -27,8 +28,13 @@ export function TextField({
   spellCheck,
   placeholder,
   helperText,
+  error,
   required = false,
 }: TextFieldProps) {
+  const describedBy = [helperText ? `${id}-helper` : null, error ? `${id}-error` : null]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -44,9 +50,11 @@ export function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        aria-describedby={helperText ? `${id}-helper` : undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy || undefined}
       />
       {helperText ? <span className="field-helper" id={`${id}-helper`}>{helperText}</span> : null}
+      {error ? <span className="field-error" id={`${id}-error`}>{error}</span> : null}
     </div>
   );
 }
