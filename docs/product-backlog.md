@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-06 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-07 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0004.
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -91,6 +91,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - When events are displayed, then each event's title and scheduled date/time are visible.
 - **MVP rule 2026-11-26:** Events are sorted by scheduled instant ascending; display uses the viewer's local time zone ([ADR 0004](decisions/0004-event-time-zone.md)).
 - **Display rule 2026-11-26:** Each event shows its title and viewer-local date/time; when the creator's time zone differs, the original wall-clock time is also shown. An empty range shows an explicit empty state with a creation action.
+
+**Delivery:** Implemented in `ba52a68`, adjusted in `7f3055a`; QA report: [US-07](qa/US-07.md).
 
 ### US-08 — Edit a saved event
 
