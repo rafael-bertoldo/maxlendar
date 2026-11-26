@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -61,10 +62,18 @@ export class PushController {
       throw invalid("auth", "A valid subscription key is required.");
     }
 
+    const existing = await this.prisma.pushSubscription.findUnique({ where: { endpoint } });
+    if (existing && existing.userId !== request.sessionUser.id) {
+      throw new ConflictException({
+        code: "SUBSCRIPTION_OWNER_CONFLICT",
+        message: "This push subscription belongs to another account.",
+      });
+    }
+
     await this.prisma.pushSubscription.upsert({
       where: { endpoint },
       create: { userId: request.sessionUser.id, endpoint, p256dh, auth },
-      update: { userId: request.sessionUser.id, p256dh, auth },
+      update: { p256dh, auth },
     });
 
     await this.reminders.scheduleAllForUser(request.sessionUser.id);

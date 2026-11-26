@@ -66,7 +66,14 @@ self.addEventListener('push', (event) => {
   }
 
   const title = typeof payload.title === 'string' ? payload.title : 'maxlendar';
-  const body = typeof payload.body === 'string' ? payload.body : 'Você tem um evento próximo.';
+  const eventTitle = typeof payload.eventTitle === 'string' ? payload.eventTitle : 'Evento';
+  const startsAt = typeof payload.startsAt === 'string' ? new Date(payload.startsAt) : null;
+  const localTime = startsAt && !Number.isNaN(startsAt.getTime())
+    ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(startsAt)
+    : null;
+  const body = localTime
+    ? `${eventTitle} começa às ${localTime}.`
+    : typeof payload.body === 'string' ? payload.body : 'Você tem um evento próximo.';
   const target = typeof payload.url === 'string' ? payload.url : '/';
 
   event.waitUntil(

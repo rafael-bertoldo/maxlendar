@@ -50,11 +50,9 @@ export class ReminderScheduler implements OnModuleInit, OnModuleDestroy {
 
       const payload = JSON.stringify({
         title: "Lembrete do maxlendar",
-        body: `${reminder.event.title} começa às ${new Intl.DateTimeFormat('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(reminder.event.startsAt)} no fuso deste dispositivo.`,
+        body: `${reminder.event.title} começa em breve.`,
         url: "/",
+        eventTitle: reminder.event.title,
         eventId: reminder.eventId,
         startsAt: reminder.event.startsAt.toISOString(),
       });
