@@ -12,6 +12,7 @@ type AssistantPanelProps = {
   onApplied: (event: CalendarEvent) => void;
   onDeleted: () => void;
   onSessionExpired: () => void;
+  onReload: () => void;
 };
 
 function formatWhen(iso: string, timeZone: string): string {
@@ -66,10 +67,11 @@ function describeResult(result: AssistantResult, timeZone: string) {
   };
 }
 
-export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpired }: AssistantPanelProps) {
+export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpired, onReload }: AssistantPanelProps) {
   const [text, setText] = useState('');
   const [result, setResult] = useState<AssistantResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasConflict, setHasConflict] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [isInterpreting, setIsInterpreting] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -79,6 +81,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
     if (!text.trim() || isInterpreting) return;
     setIsInterpreting(true);
     setError(null);
+    setHasConflict(false);
     setNotice(null);
     setResult(null);
     try {
@@ -100,6 +103,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
 
     setIsApplying(true);
     setError(null);
+    setHasConflict(false);
     try {
       if (result.kind === 'create') {
         onApplied(await createEvent(result.draft));
@@ -124,6 +128,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
       }
       if (caught instanceof ApiError && caught.code === 'VERSION_CONFLICT') {
         setError('Outro dispositivo alterou este evento. Recarregue a agenda e tente novamente.');
+        setHasConflict(true);
       } else {
         setError(caught instanceof Error ? caught.message : 'Não foi possível aplicar a alteração.');
       }
@@ -164,7 +169,16 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
         </Button>
       </form>
 
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {error ? (
+        <div className="assistant-error">
+          <p className="form-error" role="alert">{error}</p>
+          {hasConflict ? (
+            <Button variant="secondary" onClick={onReload}>
+              Recarregar agenda
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {notice ? <p className="calendar-notice" role="status">{notice}</p> : null}
 
       {view ? (

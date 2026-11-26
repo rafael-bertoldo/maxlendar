@@ -77,16 +77,26 @@ function offsetAt(instant: Date, timeZone: string): number {
   return asUtc(parts) - instant.getTime();
 }
 
-function zonedLocalToUtc(local: LocalDate & LocalTime, timeZone: string): Date | null {
+function resolveLocalCandidates(local: LocalDate & LocalTime, timeZone: string): Date[] {
   const target = asUtc(local);
-  let guess = target;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const current = asUtc(partsInZone(new Date(guess), timeZone));
-    const difference = target - current;
-    if (difference === 0) return new Date(guess);
-    guess += difference;
+  const offsets = new Set<number>();
+  for (const hours of [-26, -25, -24, -23, -22, -2, -1, 0, 1, 2, 22, 23, 24, 25, 26]) {
+    offsets.add(offsetAt(new Date(target + hours * 3_600_000), timeZone));
   }
-  return null;
+
+  const candidates: Date[] = [];
+  for (const offset of offsets) {
+    const candidate = new Date(target - offset);
+    if (asUtc(partsInZone(candidate, timeZone)) !== target) continue;
+    if (!candidates.some((existing) => existing.getTime() === candidate.getTime())) {
+      candidates.push(candidate);
+    }
+  }
+  return candidates;
+}
+
+function zonedLocalToUtc(local: LocalDate & LocalTime, timeZone: string): Date | null {
+  return resolveLocalCandidates(local, timeZone)[0] ?? null;
 }
 
 function addDays(local: LocalDate, amount: number): LocalDate {
@@ -95,9 +105,7 @@ function addDays(local: LocalDate, amount: number): LocalDate {
 }
 
 function isAmbiguous(local: LocalDate & LocalTime, timeZone: string): boolean {
-  const target = asUtc(local);
-  const offsets = [-2, -1, 0, 1, 2].map((hours) => offsetAt(new Date(target + hours * 3_600_000), timeZone));
-  return new Set(offsets).size > 1;
+  return resolveLocalCandidates(local, timeZone).length > 1;
 }
 
 function findLocalDate(text: string, referenceLocal: LocalDate): { date: LocalDate; matched: string; label: string } | null {
@@ -302,7 +310,7 @@ export class AssistantService {
       const sunday = addDays(monday, 6);
       const from = zonedLocalToUtc({ ...monday, hour: 0, minute: 0 }, timeZone)!;
       const to = zonedLocalToUtc({ ...sunday, hour: 23, minute: 59 }, timeZone)!;
-      return this.answerFromRange(userId, text, from, to, "na semana que vem", timeZone);
+      return this.answerFromRange(userId, text, from, to, "na semana que vem", timeZone, false);
     }
 
     if (normalized.includes("esta semana") || normalized.includes("essa semana")) {
@@ -310,14 +318,14 @@ export class AssistantService {
       const sunday = addDays(monday, 6);
       const from = zonedLocalToUtc({ ...monday, hour: 0, minute: 0 }, timeZone)!;
       const to = zonedLocalToUtc({ ...sunday, hour: 23, minute: 59 }, timeZone)!;
-      return this.answerFromRange(userId, text, from, to, "nesta semana", timeZone);
+      return this.answerFromRange(userId, text, from, to, "nesta semana", timeZone, false);
     }
 
     const datePart = findLocalDate(text, referenceLocal);
     if (datePart) {
       const from = zonedLocalToUtc({ ...datePart.date, hour: 0, minute: 0 }, timeZone)!;
       const to = zonedLocalToUtc({ ...datePart.date, hour: 23, minute: 59 }, timeZone)!;
-      return this.answerFromRange(userId, text, from, to, `em ${datePart.label}`, timeZone);
+      return this.answerFromRange(userId, text, from, to, `em ${datePart.label}`, timeZone, false);
     }
 
     const questionTokens = tokens(text);
@@ -327,7 +335,7 @@ export class AssistantService {
 
     const from = new Date(reference.getTime() - 7 * 86_400_000);
     const to = new Date(reference.getTime() + 14 * 86_400_000);
-    return this.answerFromRange(userId, text, from, to, "nos próximos dias", timeZone);
+    return this.answerFromRange(userId, text, from, to, "nos próximos dias", timeZone, true);
   }
 
   private async answerFromRange(
@@ -337,6 +345,7 @@ export class AssistantService {
     to: Date,
     label: string,
     timeZone: string,
+    applyTitleFilter: boolean,
   ): Promise<AssistantResult> {
     const events = await this.prisma.calendarEvent.findMany({
       where: {
@@ -347,7 +356,7 @@ export class AssistantService {
       orderBy: { startsAt: "asc" },
     });
 
-    const questionTokens = tokens(text);
+    const questionTokens = applyTitleFilter ? tokens(text) : [];
     const matches = questionTokens.length > 0
       ? events.filter((event) => {
           const title = fold(event.title);
@@ -408,7 +417,6 @@ export class AssistantService {
     if (parsed) {
       changes.startsAt = parsed.startsAt;
       changes.timeZone = timeZone;
-      result.target.startsAt = parsed.startsAt;
     } else if (changeText) {
       const title = capitalize(removePhrases(changeText, []));
       if (title) changes.title = title;

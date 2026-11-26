@@ -254,6 +254,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         onApplied={handleAssistantApplied}
         onDeleted={handleAssistantDeleted}
         onSessionExpired={onSessionExpired}
+        onReload={() => setReloadCount((count) => count + 1)}
       />
 
       <section className="calendar-panel" aria-label="Calendário">
