@@ -3,6 +3,8 @@ import { ApiError } from '../../shared/api/client';
 import { createEvent, type CalendarEvent } from '../../shared/api/events';
 import {
   formatTime,
+  isValidDateInput,
+  isValidTimeInput,
   parseLocalDateTime,
   toDateInputValue,
 } from '../../shared/lib/calendar';
@@ -14,6 +16,7 @@ type EventFormProps = {
   initialDate: Date;
   onClose: () => void;
   onCreated: (event: CalendarEvent) => void;
+  onSessionExpired: () => void;
 };
 
 type FieldErrors = {
@@ -22,8 +25,9 @@ type FieldErrors = {
   time?: string;
 };
 
-export function EventForm({ open, initialDate, onClose, onCreated }: EventFormProps) {
+export function EventForm({ open, initialDate, onClose, onCreated, onSessionExpired }: EventFormProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const requestRef = useRef<AbortController | null>(null);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(() => toDateInputValue(initialDate));
   const [time, setTime] = useState('');
@@ -40,6 +44,13 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  useEffect(() => () => requestRef.current?.abort(), []);
+
+  function closeForm() {
+    requestRef.current?.abort();
+    onClose();
+  }
+
   useEffect(() => {
     if (!open) return;
     setTitle('');
@@ -52,6 +63,7 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
 
     const nextErrors: FieldErrors = {};
     const trimmedTitle = title.trim();
@@ -61,11 +73,13 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
       nextErrors.title = 'O título deve ter no máximo 120 caracteres.';
     }
 
-    const parsed = parseLocalDateTime(date, time);
-    if (!date || !parsed) {
+    const hasValidDate = isValidDateInput(date);
+    const hasValidTime = isValidTimeInput(time);
+    const parsed = hasValidDate && hasValidTime ? parseLocalDateTime(date, time) : null;
+    if (!hasValidDate) {
       nextErrors.date = 'Escolha uma data válida.';
     }
-    if (!time || !parsed) {
+    if (!hasValidTime) {
       nextErrors.time = 'Informe um horário válido.';
     }
 
@@ -79,15 +93,25 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
         : null,
     );
     setIsSubmitting(true);
+    const controller = new AbortController();
+    requestRef.current = controller;
 
     try {
-      const savedEvent = await createEvent({
-        title: trimmedTitle,
-        startsAt: parsed.date.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      });
+      const savedEvent = await createEvent(
+        {
+          title: trimmedTitle,
+          startsAt: parsed.date.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        controller.signal,
+      );
       onCreated(savedEvent);
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof ApiError && error.status === 401) {
+        onSessionExpired();
+        return;
+      }
       if (error instanceof ApiError) {
         if (error.field === 'title') {
           setErrors({ title: error.message });
@@ -95,11 +119,16 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
         if (error.field === 'startsAt') {
           setErrors({ date: 'Confira a data informada.', time: 'Confira o horário informado.' });
         }
-        setFormError(error.message ?? 'Não foi possível salvar o evento.');
+        setFormError(
+          error.field === 'timeZone'
+            ? 'O fuso horário deste dispositivo não pôde ser enviado. Atualize o navegador e tente novamente.'
+            : error.message ?? 'Não foi possível salvar o evento.',
+        );
       } else {
         setFormError(error instanceof Error ? error.message : 'Não foi possível salvar o evento.');
       }
     } finally {
+      requestRef.current = null;
       setIsSubmitting(false);
     }
   }
@@ -110,11 +139,11 @@ export function EventForm({ open, initialDate, onClose, onCreated }: EventFormPr
       ref={dialogRef}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        closeForm();
       }}
     >
       <div className="event-dialog-content">
-        <button className="dialog-close" type="button" aria-label="Fechar formulário" onClick={onClose}>
+        <button className="dialog-close" type="button" aria-label="Fechar formulário" onClick={closeForm}>
           ×
         </button>
         <p className="eyebrow">Novo evento</p>

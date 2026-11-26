@@ -37,11 +37,14 @@ export async function listEvents(
   return body.events ?? [];
 }
 
-export async function createEvent(input: {
-  title: string;
-  startsAt: string;
-  timeZone: string;
-}): Promise<CalendarEvent> {
+export async function createEvent(
+  input: {
+    title: string;
+    startsAt: string;
+    timeZone: string;
+  },
+  signal?: AbortSignal,
+): Promise<CalendarEvent> {
   let response: Response;
 
   try {
@@ -50,8 +53,10 @@ export async function createEvent(input: {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(input),
+      signal,
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new Error('Não foi possível conectar ao maxlendar. Verifique sua conexão.');
   }
 

@@ -198,6 +198,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
         initialDate={anchor}
         onClose={() => setIsEventFormOpen(false)}
         onCreated={handleEventCreated}
+        onSessionExpired={onSessionExpired}
       />
     </main>
   );

@@ -75,28 +75,34 @@ export function toTimeInputValue(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+export function isValidDateInput(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+
+  const parts = new Date(Date.UTC(year, month - 1, day));
+  return (
+    parts.getUTCFullYear() === year &&
+    parts.getUTCMonth() === month - 1 &&
+    parts.getUTCDate() === day
+  );
+}
+
+export function isValidTimeInput(value: string): boolean {
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return false;
+  return Number(match[1]) <= 23 && Number(match[2]) <= 59;
+}
+
 export function parseLocalDateTime(dateValue: string, timeValue: string): { date: Date; adjusted: boolean } | null {
-  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
-  const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeValue);
-  if (!dateMatch || !timeMatch) return null;
+  if (!isValidDateInput(dateValue) || !isValidTimeInput(timeValue)) return null;
 
-  const year = Number(dateMatch[1]);
-  const month = Number(dateMatch[2]);
-  const day = Number(dateMatch[3]);
-  const hour = Number(timeMatch[1]);
-  const minute = Number(timeMatch[2]);
-
-  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
-
-  const calendarParts = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  if (
-    calendarParts.getUTCFullYear() !== year ||
-    calendarParts.getUTCMonth() !== month - 1 ||
-    calendarParts.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const [hour, minute] = timeValue.split(':').map(Number);
   const date = new Date(year, month - 1, day, hour, minute, 0, 0);
   const adjusted =
     date.getFullYear() !== year ||
