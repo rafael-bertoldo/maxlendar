@@ -1,7 +1,7 @@
 # Product Backlog
 
 **Status:** MVP draft; US-01 to US-10 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0007.  
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0008.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -144,8 +144,10 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given an event is edited or deleted, then its pending reminders are updated or canceled to match the event's current state.
 - Given an event is saved after one or both reminder times have passed, then no reminder is sent for a time that has already passed.
 - Given a reminder is due, then the product attempts delivery through the registered browser/device push subscription while the app is closed.
-- **Open decision:** User-facing behavior for denied, unavailable, or revoked notification permission is unresolved.
-- **Open decision:** Push delivery depends on browser/platform support and is best-effort; exact supported platforms and delivery evidence are not defined.
+- **Decided 2026-11-26:** The UI asks for permission only from an explicit "Ativar lembretes" action; denied, unavailable, or revoked permission shows a non-blocking message and does not prompt again automatically ([ADR 0008](decisions/0008-web-push-reminders.md)).
+- **Decided 2026-11-26:** Delivery uses Web Push/VAPID with per-user/device subscriptions; platform support is browser-dependent and delivery is best-effort, with no retry queue in the MVP ([ADR 0008](decisions/0008-web-push-reminders.md)).
+
+**Delivery:** Implemented in pending commit; QA report: pending. 
 
 ### US-12 — Create an event from natural language with confirmation
 
@@ -207,7 +209,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 
 1. What username formats, lengths, normalization rules, reserved names, and minimum password input requirements should be supported?
 2. ~~How should events be displayed when the user views the calendar in a different time zone, and how should daylight-saving ambiguous/nonexistent local times be handled?~~ Resolved for the MVP in [ADR 0004](decisions/0004-event-time-zone.md): fixed instant displayed in the viewer's zone, with browser-side conversion of local input.
-3. What should happen when push permission is denied, unavailable, or revoked, and which browser/platform combinations are supported?
+3. ~~What should happen when push permission is denied, unavailable, or revoked, and which browser/platform combinations are supported?~~ Resolved for the MVP in [ADR 0008](decisions/0008-web-push-reminders.md): explicit opt-in only, non-blocking messaging, best-effort browser-dependent delivery.
 4. How quickly must changes appear on other devices, and how should concurrent edits be surfaced or resolved?
 5. What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?
 6. What authentication session mechanism satisfies persistent per-device sessions without automatic expiry, and how should architecture address loss of a device?
