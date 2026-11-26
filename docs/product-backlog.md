@@ -1,7 +1,7 @@
 # Product Backlog
 
 **Status:** MVP draft; US-01 to US-11 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0008.  
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0010.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -159,7 +159,10 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given the draft is displayed, when I confirm it, then the event is saved to my calendar.
 - Given the draft is displayed, when I reject it, then no event is saved.
 - Given required details cannot be determined, then the assistant does not save an event without presenting a complete draft for confirmation.
-- **Open decision:** Handling of ambiguous dates/times, missing details, daylight-saving cases, and evaluation examples/quality thresholds is unresolved.
+- **Decided 2026-11-26:** A local deterministic interpreter resolves supported Portuguese relative dates/times in the viewer's time zone; missing or unsupported details produce a clarification, never an implicit save ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
+- **Quality evidence:** QA covers representative create phrases, missing title/date/time, DST-ambiguous local input, rejection, and confirmation through the existing event endpoint.
+
+**Delivery:** Pending.
 
 ### US-13 — Ask questions about my calendar
 
@@ -170,7 +173,10 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given events exist in the relevant calendar range, when I ask a question such as “What do I have tomorrow?”, then the response is based on events belonging to my calendar and relevant to the question.
 - Given there are no matching events, then the assistant indicates that no matching events were found.
 - Given the requested range or intent is ambiguous, then the assistant asks for clarification or otherwise avoids presenting an unsupported answer.
-- **Open decision:** Representative question examples, answer quality criteria, date-range interpretation, and the assistant's clarification behavior are unresolved.
+- **Decided 2026-11-26:** Questions are answered only from the signed-in user's events in a resolved range; no match produces an explicit “no events found” answer and ambiguous ranges produce a clarification ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
+- **Quality evidence:** QA covers “hoje”, “amanhã”, “próxima semana”, no-match answers, cross-user isolation, and ambiguous wording.
+
+**Delivery:** Pending.
 
 ### US-14 — Review and confirm an AI-proposed event change
 
@@ -182,7 +188,10 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given the proposal is shown, when I confirm it, then the change is applied to the identified event.
 - Given the proposal is shown, when I reject it, then the event remains unchanged.
 - Given the target or requested change is ambiguous, then the assistant does not apply a change and requests clarification or presents a sufficiently clear proposal for review.
-- **Open decision:** Event disambiguation and concurrent-edit/version-conflict behavior are unresolved.
+- **Decided 2026-11-26:** Edit targets are matched by title tokens within a 14-day window around the viewer's reference date; zero or multiple matches require clarification, and confirmation uses the stored `version` through `PATCH` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
+- **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, and a `409 VERSION_CONFLICT` case.
+
+**Delivery:** Pending.
 
 ### US-15 — Review and confirm an AI-proposed event deletion
 
@@ -194,7 +203,10 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Given the proposed deletion is shown, when I confirm it, then the event is deleted and its pending reminders are canceled.
 - Given the proposed deletion is shown, when I reject it, then the event remains unchanged.
 - Given more than one event could match the request, then the assistant does not delete any event until the target is unambiguous and confirmed.
-- **Open decision:** Event disambiguation and concurrent-edit/version-conflict behavior are unresolved.
+- **Decided 2026-11-26:** Deletion targets use the same title-token disambiguation as edits; multiple matches, missing targets, or unclear requests produce a clarification, and confirmation uses the stored `version` through `DELETE` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
+- **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, `409`, and cancellation of pending reminders after confirmation.
+
+**Delivery:** Pending.
 
 ## Out of scope for the MVP
 
@@ -211,6 +223,6 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 2. ~~How should events be displayed when the user views the calendar in a different time zone, and how should daylight-saving ambiguous/nonexistent local times be handled?~~ Resolved for the MVP in [ADR 0004](decisions/0004-event-time-zone.md): fixed instant displayed in the viewer's zone, with browser-side conversion of local input.
 3. ~~What should happen when push permission is denied, unavailable, or revoked, and which browser/platform combinations are supported?~~ Resolved for the MVP in [ADR 0008](decisions/0008-web-push-reminders.md): explicit opt-in only, non-blocking messaging, best-effort browser-dependent delivery.
 4. How quickly must changes appear on other devices, and how should concurrent edits be surfaced or resolved?
-5. What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?
+5. ~~What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?~~ Resolved for the MVP in [ADR 0009](decisions/0009-assistant-contract.md) and [ADR 0010](decisions/0010-local-assistant.md): read-only structured interpretation, explicit clarifications, confirmation via existing endpoints, and QA evidence sets per story.
 6. What authentication session mechanism satisfies persistent per-device sessions without automatic expiry, and how should architecture address loss of a device?
 7. Which hosting and AI/Web Push providers meet the operational, privacy, cost, and availability needs of the MVP?
