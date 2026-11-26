@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { listEvents, type CalendarEvent } from '../../shared/api/events';
 import { EventForm } from '../events/EventForm';
@@ -35,6 +35,7 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const lastSyncRef = useRef(0);
 
   const range = useMemo(() => rangeForView(view, anchor), [view, anchor]);
 
@@ -67,6 +68,23 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
     const timer = window.setTimeout(() => setSavedNotice(null), 6000);
     return () => window.clearTimeout(timer);
   }, [savedNotice]);
+
+  useEffect(() => {
+    function syncOnFocus() {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastSyncRef.current < 1000) return;
+      lastSyncRef.current = now;
+      setReloadCount((count) => count + 1);
+    }
+
+    window.addEventListener('focus', syncOnFocus);
+    document.addEventListener('visibilitychange', syncOnFocus);
+    return () => {
+      window.removeEventListener('focus', syncOnFocus);
+      document.removeEventListener('visibilitychange', syncOnFocus);
+    };
+  }, []);
 
   function openCreateForm() {
     setEditingEvent(null);
@@ -190,6 +208,9 @@ export function CalendarPage({ username, notice, onSignOut, onSessionExpired }: 
 
         <p className="calendar-timezone">
           Horários exibidos no fuso deste dispositivo: <strong>{viewerTimeZone}</strong>.
+          <span className="calendar-sync-note">
+            {' '}A agenda atualiza ao abrir ou voltar a esta aba; abas em segundo plano podem ficar desatualizadas.
+          </span>
         </p>
 
         {loadError ? (
