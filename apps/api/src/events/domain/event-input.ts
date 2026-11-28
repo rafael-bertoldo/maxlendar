@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { partsInZone } from "../../recurrence/local-time";
 
 export const MAX_TITLE_LENGTH = 120;
 export const MAX_RANGE_DAYS = 62;
@@ -124,4 +125,68 @@ export function readRange(fromValue: unknown, toValue: unknown): { from: Date; t
   }
 
   return { from, to };
+}
+
+export interface WeeklyRecurrence {
+  frequency: "weekly";
+  byWeekday: number[];
+}
+
+export type EventScope = "occurrence" | "series";
+
+function unsupportedRecurrence(message: string): BadRequestException {
+  return new BadRequestException({
+    code: "UNSUPPORTED_RECURRENCE",
+    message,
+  });
+}
+
+export function readRecurrence(value: unknown): WeeklyRecurrence | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw validationError("recurrence", "The recurrence rule must be an object.");
+  }
+
+  const rule = value as Record<string, unknown>;
+  const unsupportedFields = Object.keys(rule).filter(
+    (key) => key !== "frequency" && key !== "byWeekday",
+  );
+  if (unsupportedFields.length > 0) {
+    throw unsupportedRecurrence("Only weekly recurrence without an end date is supported.");
+  }
+  if (rule.frequency !== "weekly") {
+    throw unsupportedRecurrence("Only weekly recurrence is supported.");
+  }
+  if (!Array.isArray(rule.byWeekday) || rule.byWeekday.length !== 1) {
+    throw unsupportedRecurrence("Choose exactly one weekday per weekly recurrence.");
+  }
+
+  const byWeekday: number[] = [];
+  for (const weekday of rule.byWeekday) {
+    if (
+      typeof weekday !== "number" ||
+      !Number.isInteger(weekday) ||
+      weekday < 0 ||
+      weekday > 6
+    ) {
+      throw validationError("recurrence.byWeekday", "Weekdays must be integers from 0 to 6.");
+    }
+    if (byWeekday.includes(weekday)) {
+      throw validationError("recurrence.byWeekday", "Weekdays must be unique.");
+    }
+    byWeekday.push(weekday);
+  }
+
+  return { frequency: "weekly", byWeekday };
+}
+
+export function readScope(value: unknown): EventScope {
+  if (value === undefined || value === "series") return "series";
+  if (value === "occurrence") return "occurrence";
+  throw validationError("scope", "Scope must be either 'occurrence' or 'series'.");
+}
+
+export function readLocalTime(startsAt: Date, timeZone: string): string {
+  const local = partsInZone(startsAt, timeZone);
+  return `${String(local.hour).padStart(2, "0")}:${String(local.minute).padStart(2, "0")}`;
 }

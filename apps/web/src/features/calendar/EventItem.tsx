@@ -10,6 +10,7 @@ type EventItemProps = {
 export function EventItem({ event, compact = false, onEdit }: EventItemProps) {
   const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const hasDifferentTimeZone = event.timeZone !== viewerTimeZone;
+  const isRecurring = event.source === 'recurring' || Boolean(event.isException);
   const originalTime = hasDifferentTimeZone
     ? formatInTimeZone(event.startsAt, event.timeZone)
     : null;
@@ -24,9 +25,10 @@ export function EventItem({ event, compact = false, onEdit }: EventItemProps) {
       ? `↔ ${originalTime} (${event.timeZone})`
       : `↔ ${event.timeZone}`
     : null;
-  const label = provenance
-    ? `${event.title}, ${localTime} no fuso ${viewerTimeZone}; ${provenance}. Editar evento.`
-    : `${event.title}, ${localTime} no fuso ${viewerTimeZone}. Editar evento.`;
+  const labelParts = [`${event.title}, ${localTime} no fuso ${viewerTimeZone}`];
+  if (isRecurring) labelParts.push('evento recorrente');
+  if (provenance) labelParts.push(provenance);
+  const label = `${labelParts.join('; ')}. Editar evento.`;
 
   return (
     <button
@@ -40,6 +42,7 @@ export function EventItem({ event, compact = false, onEdit }: EventItemProps) {
         {localTime}
       </time>
       <span className="event-title">{event.title}</span>
+      {isRecurring ? <span className="event-recurrence-badge">Recorrente</span> : null}
       {provenance ? (
         <span className="event-origin" title={provenance}>
           {compact ? compactProvenance : provenance}

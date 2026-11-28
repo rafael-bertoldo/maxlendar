@@ -1,9 +1,11 @@
 import { ApiError, readApiError } from './client';
+import type { Recurrence, RecurrenceScope } from './events';
 
 export type AssistantDraft = {
   title: string;
   startsAt: string;
   timeZone: string;
+  recurrence?: Recurrence;
 };
 
 export type AssistantTarget = {
@@ -12,6 +14,11 @@ export type AssistantTarget = {
   startsAt: string;
   timeZone: string;
   version: number;
+  source?: 'one-off' | 'recurring';
+  seriesId?: string;
+  occurrenceKey?: string;
+  isException?: boolean;
+  recurrence?: Recurrence;
 };
 
 export type AssistantEvidence = {
@@ -34,9 +41,16 @@ export type AssistantResult =
       message: string;
       target: AssistantTarget;
       changes: Partial<AssistantDraft>;
+      scope?: RecurrenceScope;
       confidence: 'high' | 'medium';
     }
-  | { kind: 'delete'; message: string; target: AssistantTarget; confidence: 'high' | 'medium' }
+  | {
+      kind: 'delete';
+      message: string;
+      target: AssistantTarget;
+      scope?: RecurrenceScope;
+      confidence: 'high' | 'medium';
+    }
   | { kind: 'clarification'; message: string; confidence: 'none' };
 
 export async function interpretRequest(

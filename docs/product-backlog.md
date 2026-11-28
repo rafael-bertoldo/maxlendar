@@ -1,6 +1,6 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-15 implemented, with QA evidence recorded under [`docs/qa/`](qa/).  
+**Status:** MVP draft; US-01 to US-15 implemented, with QA evidence recorded under [`docs/qa/`](qa/). US-16 is a new proposal awaiting PO validation; it is not implemented.
 **Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0010.  
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
@@ -208,10 +208,44 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 
 **Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-15](qa/US-15.md).
 
+### US-16 — Salvar um evento com recorrência semanal
+
+**Status:** Implementada em 2026-11-28; decisões validadas em [ADR 0011](decisions/0011-weekly-recurrence.md) e evidências em [QA US-16](qa/US-16.md). **Origem:** Pedido do usuário de incluir recorrência ao salvar, com o exemplo “buscar o Thor todas as quintas às 10”.
+
+**Description:** Como usuário, quero salvar um evento com uma regra de recorrência informada no momento da criação, inclusive pelo assistente, para não precisar criar manualmente cada ocorrência.
+
+**Acceptance criteria:**
+
+- Dado que estou autenticado, quando peço ao assistente para criar “Buscar o Thor todas as quintas às 10”, então o rascunho de criação mostra o título, a primeira ocorrência futura no horário local informado e a recorrência semanal às quintas, e nenhum evento é salvo antes da confirmação.
+- Dado o rascunho recorrente exibido, quando confirmo a criação, então o evento passa a aparecer na ocorrência apresentada e nas quintas seguintes dos intervalos consultados.
+- Dado que preencho o formulário manual, quando escolho repetir semanalmente e informo o dia da semana e o horário, então a mesma recorrência é salva e visível no evento.
+- Dado uma frase ou formulário com recorrência sem dia da semana, sem horário ou com cadência/data de fim não suportados, então o produto pede o dado faltante ou explica o limite e não salva o evento.
+- Dado um evento recorrente salvo, quando visualizo dia, semana ou mês, então cada ocorrência no intervalo é exibida com título e horário local, e os lembretes padrão da US-11 se aplicam a cada ocorrência futura.
+- Dado que a recorrência gera um horário ambíguo ou inexistente no fuso de criação, então o produto não salva uma ocorrência inválida sem esclarecimento.
+- Dado um evento recorrente salvo, quando solicito uma edição ou exclusão, então o produto me oferece a escolha entre “apenas esta ocorrência” e “toda a série” antes de aplicar a mudança.
+- Dado que escolho “toda a série”, quando confirmo, então a regra e todas as ocorrências futuras são atualizadas ou canceladas.
+- Dado que escolho “apenas esta ocorrência”, quando confirmo, então somente aquela data é alterada ou removida como exceção, e as demais permanecem com a regra original.
+
+**Decisões validadas com o usuário em 2026-11-28:**
+
+- O exemplo “buscar o Thor todas as quintas às 10” descreve um compromisso recorrente a criar, não uma consulta à agenda.
+- O primeiro incremento cobre apenas recorrência semanal por um dia da semana por série, sem data de fim. Recorrência diária, mensal, múltiplos dias por série e condições de fim ficam fora deste incremento.
+- A primeira ocorrência é a primeira data/hora futura que satisfaz a regra; se o horário semanal de hoje já passou, a série começa na semana seguinte.
+- Ao editar ou excluir um evento recorrente, o usuário escolhe explicitamente entre aplicar a mudança a uma ocorrência ou a toda a série, sem padrão silencioso; essa escolha faz parte da revisão antes da confirmação.
+- “Apenas esta ocorrência” é uma exceção editável: aquela data pode ter título/horário próprios ou ser removida, sem alterar as demais ocorrências da série.
+- Os lembretes padrão da US-11 valem para toda ocorrência futura; a janela técnica de agendamento é decisão do Architect.
+- A recorrência usa o horário local do fuso de criação em cada ocorrência; horários ambíguos ou inexistentes seguem a regra de clarificação já adotada nas US-12 a US-15.
+- Em ocorrências futuras, horário ambíguo usa o primeiro instante válido e horário inexistente é deslocado para o próximo minuto válido no mesmo dia; se não houver, a ocorrência é ignorada e a limitação é documentada.
+- A escolha de escopo aparece no card de revisão do assistente, junto da confirmação, e em um diálogo na edição manual; frases ambíguas do assistente pedem clarificação.
+
+**Handoff ao Architect resolvido em [ADR 0011](decisions/0011-weekly-recurrence.md):**
+
+- Expansão da série na leitura, exceções persistidas, horizonte de lembretes de 48 horas e versioning em dois níveis (série e exceção).
+
 ## Out of scope for the MVP
 
 - Email collection and password recovery.
-- Recurring events.
+- Recurring events in the original MVP; US-16 adds a bounded weekly increment only. Daily/monthly cadences and end dates remain out of scope.
 - Event description, location, duration, and end time.
 - Per-event reminder customization.
 - Native app-store releases.
@@ -226,3 +260,4 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 5. ~~What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?~~ Resolved for the MVP in [ADR 0009](decisions/0009-assistant-contract.md) and [ADR 0010](decisions/0010-local-assistant.md): read-only structured interpretation, explicit clarifications, confirmation via existing endpoints, and QA evidence sets per story.
 6. What authentication session mechanism satisfies persistent per-device sessions without automatic expiry, and how should architecture address loss of a device?
 7. Partially resolved for the MVP: [ADR 0010](decisions/0010-local-assistant.md) uses a local assistant with no external AI provider, and [ADR 0008](decisions/0008-web-push-reminders.md) uses project-generated VAPID instead of a hosted push provider. Hosting provider selection remains open for deployment.
+8. ~~For US-16, what edit/delete semantics should be decided before implementation starts?~~ Resolved on 2026-11-28 in US-16: explicit scope choice in review, editable exception for one occurrence. Technical representation and reminder window remain with the Architect.

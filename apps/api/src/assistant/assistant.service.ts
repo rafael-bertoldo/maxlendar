@@ -1,10 +1,17 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaService } from "../database/prisma.service";
+import { Injectable } from "@nestjs/common";
+import type { CalendarEventDto } from "../events/application/event-dto";
+import { ListEvents } from "../events/application/list-events";
+import {
+  addDays,
+  firstFutureOccurrence,
+  partsInZone,
+} from "../recurrence/local-time";
 import type { AssistantDraft, AssistantResult, AssistantTarget } from "./assistant.types";
 
 type LocalDate = { year: number; month: number; day: number };
 type LocalTime = { hour: number; minute: number };
 type DateTimeParse = { startsAt: string; matched: string[]; ambiguous: boolean };
+type WeeklyRecurrenceMatch = { weekday: number; matched: string };
 
 const WEEKDAYS: Record<string, number> = {
   domingo: 0,
@@ -17,6 +24,26 @@ const WEEKDAYS: Record<string, number> = {
   sabado: 6,
   sábado: 6,
 };
+
+const WEEKDAY_PATTERN = "(?:domingo|segunda|terca|quarta|quinta|sexta|sabado)(?:s)?(?:[\\s-]?feira(?:s)?)?";
+const WEEKLY_PREFIX = "(?:todas as|todos os|toda|todo|aos|ao|as)";
+const WEEKLY_SINGLE_RE = new RegExp(`\\b(${WEEKLY_PREFIX})\\s+(${WEEKDAY_PATTERN})\\b`, "i");
+const WEEKLY_MULTI_RE = new RegExp(
+  `\\b${WEEKLY_PREFIX}\\s+${WEEKDAY_PATTERN}(?:\\s*(?:,|e)\\s*${WEEKDAY_PATTERN})+\\b`,
+  "i",
+);
+const UNSUPPORTED_CADENCE_RE = [
+  /\b(?:todos os dias|todo dia|todos dia|todas as dias|diariamente)\b/,
+  /\b(?:todo mes|todos os meses|todas as meses|mensalmente)\b/,
+  /\b(?:a cada|cada)\s+\d+\s+(?:dias?|semanas?|meses?|anos?)\b/,
+  /\b(?:quinzenal(?:mente)?|anual(?:mente)?|bimestral(?:mente)?)\b/,
+];
+const END_DATE_RE = [
+  /\bate\b(?:\s+(?:o|a|os|as))?\s+(?:dia\s+)?(?:\d{1,2}\/\d{1,2}|\d{1,2}\s+de\s+[a-z]+|[a-z]+)/,
+  /\bpor\s+\d+\s+(?:semanas?|meses?|dias?|anos?)\b/,
+  /\bdurante\s+\d+\s+(?:semanas?|meses?|dias?|anos?)\b/,
+  /\b(?:termina|terminar|acaba|acabar|finaliza|finalizar|fim)\s+(?:em|na|no|nas|nos)\b/,
+];
 
 const MONTHS: Record<string, number> = {
   janeiro: 1,
@@ -44,6 +71,7 @@ const STOP_WORDS = new Set([
   "compromisso", "reuniao", "reunião", "algo", "alguem", "que", "quais", "os",
   "tem", "houver", "minha", "meu", "dia", "semana", "proximo", "por", "favor",
   "agenda", "diga", "me", "sobre", "eventos", "compromissos",
+  "ocorrencia", "instancia", "serie", "semanal", "toda", "todas", "todo", "todos",
 ]);
 
 function fold(value: string): string {
@@ -52,20 +80,6 @@ function fold(value: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function partsInZone(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
-  return { year: value("year"), month: value("month"), day: value("day"), hour: value("hour"), minute: value("minute") };
 }
 
 function asUtc(local: LocalDate & LocalTime): number {
@@ -97,11 +111,6 @@ function resolveLocalCandidates(local: LocalDate & LocalTime, timeZone: string):
 
 function zonedLocalToUtc(local: LocalDate & LocalTime, timeZone: string): Date | null {
   return resolveLocalCandidates(local, timeZone)[0] ?? null;
-}
-
-function addDays(local: LocalDate, amount: number): LocalDate {
-  const date = new Date(Date.UTC(local.year, local.month - 1, local.day + amount));
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
 }
 
 function isAmbiguous(local: LocalDate & LocalTime, timeZone: string): boolean {
@@ -250,6 +259,54 @@ function formatLocal(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
+function unsupportedRecurrence(text: string): AssistantResult | null {
+  const normalized = fold(text);
+  if (WEEKLY_MULTI_RE.test(normalized)) {
+    return clarification("Por enquanto só crio recorrência semanal em um único dia da semana. Informe apenas um dia, por exemplo ‘toda quinta às 10’.");
+  }
+  if (UNSUPPORTED_CADENCE_RE.some((pattern) => pattern.test(normalized))) {
+    return clarification("Por enquanto só crio recorrência semanal em um único dia da semana. Não suporto cadências como ‘todos os dias’ ou ‘todo mês’.");
+  }
+  return null;
+}
+
+function detectWeeklyRecurrence(text: string): WeeklyRecurrenceMatch | null {
+  const normalized = fold(text);
+  const match = WEEKLY_SINGLE_RE.exec(normalized);
+  if (!match) return null;
+
+  const day = match[2]
+    .replace(/-?feira(?:s)?$/, "")
+    .replace(/s$/, "");
+  const weekday = WEEKDAYS[day];
+  if (weekday === undefined) return null;
+
+  return {
+    weekday,
+    matched: text.slice(match.index, match.index + match[0].length),
+  };
+}
+
+function hasExplicitEndDate(text: string): boolean {
+  const normalized = fold(text);
+  return END_DATE_RE.some((pattern) => pattern.test(normalized));
+}
+
+function toAssistantTarget(event: CalendarEventDto): AssistantTarget {
+  return {
+    id: event.id,
+    title: event.title,
+    startsAt: event.startsAt,
+    timeZone: event.timeZone,
+    version: event.version,
+    source: event.source,
+    ...(event.seriesId !== undefined ? { seriesId: event.seriesId } : {}),
+    ...(event.occurrenceKey !== undefined ? { occurrenceKey: event.occurrenceKey } : {}),
+    ...(event.isException !== undefined ? { isException: event.isException } : {}),
+    ...(event.recurrence !== undefined ? { recurrence: event.recurrence } : {}),
+  };
+}
+
 function clarification(message: string): AssistantResult {
   return { kind: "clarification", message, confidence: "none" };
 }
@@ -265,7 +322,7 @@ function detectIntent(text: string): "answer" | "delete" | "edit" | "create" {
 
 @Injectable()
 export class AssistantService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly listEvents: ListEvents) {}
 
   async interpret(userId: string, text: string, timeZone: string, reference: Date): Promise<AssistantResult> {
     const intent = detectIntent(text);
@@ -276,6 +333,49 @@ export class AssistantService {
   }
 
   private async create(text: string, timeZone: string, reference: Date): Promise<AssistantResult> {
+    const unsupported = unsupportedRecurrence(text);
+    if (unsupported) return unsupported;
+
+    const weekly = detectWeeklyRecurrence(text);
+    if (weekly) {
+      if (hasExplicitEndDate(text)) {
+        return clarification("Por enquanto não suporto recorrência com data de fim. Crie a série sem fim e exclua as ocorrências que não quiser.");
+      }
+
+      const weeklyTime = findLocalTime(text);
+      if (!weeklyTime) {
+        return clarification("Informe o horário da recorrência, por exemplo: ‘Buscar o Thor toda quinta às 10’.");
+      }
+
+      const first = firstFutureOccurrence(
+        weekly.weekday,
+        weeklyTime.time.hour,
+        weeklyTime.time.minute,
+        timeZone,
+        reference,
+      );
+      if (!first) {
+        return clarification("Não encontrei uma ocorrência futura válida para essa recorrência.");
+      }
+
+      const weeklyTitle = capitalize(removePhrases(text, [weekly.matched, weeklyTime.matched]));
+      if (!weeklyTitle || ["evento", "compromisso"].includes(fold(weeklyTitle))) {
+        return clarification("Informe um título para o evento recorrente, por exemplo: ‘Buscar o Thor toda quinta às 10’.");
+      }
+
+      return {
+        kind: "create",
+        message: `Entendi: criar “${weeklyTitle}” com recorrência semanal. Revise antes de salvar.`,
+        draft: {
+          title: weeklyTitle,
+          startsAt: first.toISOString(),
+          timeZone,
+          recurrence: { frequency: "weekly", byWeekday: [weekly.weekday] },
+        },
+        confidence: "high",
+      };
+    }
+
     const parsed = parseDateTime(text, reference, timeZone);
     if (!parsed) {
       return clarification("Informe uma data e um horário, por exemplo: ‘Reunião de plano amanhã às 10’.");
@@ -347,13 +447,10 @@ export class AssistantService {
     timeZone: string,
     applyTitleFilter: boolean,
   ): Promise<AssistantResult> {
-    const events = await this.prisma.calendarEvent.findMany({
-      where: {
-        calendar: { userId },
-        startsAt: { gte: from, lte: to },
-      },
-      select: { id: true, title: true, startsAt: true },
-      orderBy: { startsAt: "asc" },
+    const { events } = await this.listEvents.execute({
+      userId,
+      from: from.toISOString(),
+      to: to.toISOString(),
     });
 
     const questionTokens = applyTitleFilter ? tokens(text) : [];
@@ -374,7 +471,7 @@ export class AssistantService {
       };
     }
 
-    const lines = matches.slice(0, 8).map((event) => `${formatLocal(event.startsAt.toISOString(), timeZone)} — ${event.title}`);
+    const lines = matches.slice(0, 8).map((event) => `${formatLocal(event.startsAt, timeZone)} — ${event.title}`);
     const more = matches.length > 8 ? ` e mais ${matches.length - 8}` : "";
     return {
       kind: "answer",
@@ -383,7 +480,7 @@ export class AssistantService {
       evidence: matches.slice(0, 8).map((event) => ({
         id: event.id,
         title: event.title,
-        startsAt: event.startsAt.toISOString(),
+        startsAt: event.startsAt,
       })),
       confidence: "high",
     };
@@ -448,13 +545,10 @@ export class AssistantService {
 
     const from = new Date(reference.getTime() - 14 * 86_400_000);
     const to = new Date(reference.getTime() + 14 * 86_400_000);
-    const events = await this.prisma.calendarEvent.findMany({
-      where: {
-        calendar: { userId },
-        startsAt: { gte: from, lte: to },
-      },
-      select: { id: true, title: true, startsAt: true, creationTimeZone: true, version: true },
-      orderBy: { startsAt: "asc" },
+    const { events } = await this.listEvents.execute({
+      userId,
+      from: from.toISOString(),
+      to: to.toISOString(),
     });
 
     const matches = events.filter((event) => {
@@ -471,15 +565,6 @@ export class AssistantService {
       return clarification(`Encontrei mais de um evento possível: ${titles}. Especifique melhor o título.`);
     }
 
-    const match = matches[0];
-    return {
-      target: {
-        id: match.id,
-        title: match.title,
-        startsAt: match.startsAt.toISOString(),
-        timeZone: match.creationTimeZone,
-        version: match.version,
-      },
-    };
+    return { target: toAssistantTarget(matches[0]) };
   }
 }

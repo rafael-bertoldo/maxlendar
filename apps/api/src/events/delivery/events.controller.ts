@@ -23,6 +23,7 @@ interface CreateEventBody {
   title?: unknown;
   startsAt?: unknown;
   timeZone?: unknown;
+  recurrence?: unknown;
 }
 
 interface UpdateEventBody {
@@ -30,6 +31,7 @@ interface UpdateEventBody {
   startsAt?: unknown;
   timeZone?: unknown;
   version?: unknown;
+  scope?: unknown;
 }
 
 @Controller("events")
@@ -50,6 +52,7 @@ export class EventsController {
       title: body?.title,
       startsAt: body?.startsAt,
       timeZone: body?.timeZone,
+      recurrence: body?.recurrence,
     });
     return { event };
   }
@@ -67,6 +70,7 @@ export class EventsController {
       startsAt: body?.startsAt,
       timeZone: body?.timeZone,
       version: body?.version,
+      scope: body?.scope,
     });
     return { event };
   }
@@ -76,11 +80,13 @@ export class EventsController {
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,
     @Query("version") version: unknown,
+    @Query("scope") scope?: unknown,
   ) {
     return this.deleteEvent.execute({
       userId: request.sessionUser.id,
       id,
       version,
+      scope,
     });
   }
 

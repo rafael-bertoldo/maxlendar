@@ -4,7 +4,13 @@ import {
   interpretRequest,
   type AssistantResult,
 } from '../../shared/api/assistant';
-import { createEvent, deleteEvent, updateEvent, type CalendarEvent } from '../../shared/api/events';
+import {
+  createEvent,
+  deleteEvent,
+  updateEvent,
+  type CalendarEvent,
+  type RecurrenceScope,
+} from '../../shared/api/events';
 import { Button } from '../../shared/ui/Button';
 
 type AssistantPanelProps = {
@@ -15,6 +21,8 @@ type AssistantPanelProps = {
   onReload: () => void;
 };
 
+const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
 function formatWhen(iso: string, timeZone: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     timeZone,
@@ -23,11 +31,25 @@ function formatWhen(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
+function formatRecurrence(byWeekday: number[] | undefined): string | null {
+  if (!byWeekday || byWeekday.length === 0) return null;
+  const labels = [...byWeekday].sort((a, b) => a - b).map((day) => WEEKDAY_LABELS[day] ?? String(day));
+  return `Recorrência: toda ${labels[0]}`;
+}
+
+function needsScope(result: AssistantResult | null): result is Extract<AssistantResult, { kind: 'edit' | 'delete' }> {
+  if (!result || (result.kind !== 'edit' && result.kind !== 'delete')) return false;
+  return result.target.source === 'recurring' || Boolean(result.target.isException);
+}
+
 function describeResult(result: AssistantResult, timeZone: string) {
   if (result.kind === 'create') {
+    const details = [`${result.draft.title} — ${formatWhen(result.draft.startsAt, timeZone)}`];
+    const recurrence = formatRecurrence(result.draft.recurrence?.byWeekday);
+    if (recurrence) details.push(recurrence);
     return {
       title: 'Rascunho de evento',
-      details: [`${result.draft.title} — ${formatWhen(result.draft.startsAt, timeZone)}`],
+      details,
       confirmLabel: 'Confirmar criação',
       confirmable: true,
     };
@@ -42,8 +64,14 @@ function describeResult(result: AssistantResult, timeZone: string) {
   }
   if (result.kind === 'edit') {
     const details = [`Alvo: ${result.target.title} — ${formatWhen(result.target.startsAt, timeZone)}`];
+    const recurrence = formatRecurrence(result.target.recurrence?.byWeekday);
+    if (recurrence) details.push(recurrence);
     if (result.changes.title) details.push(`Novo título: ${result.changes.title}`);
     if (result.changes.startsAt) details.push(`Novo horário: ${formatWhen(result.changes.startsAt, timeZone)}`);
+    if (result.changes.recurrence?.byWeekday) {
+      const nextRecurrence = formatRecurrence(result.changes.recurrence.byWeekday);
+      if (nextRecurrence) details.push(`Nova ${nextRecurrence.toLowerCase()}`);
+    }
     return {
       title: 'Proposta de alteração',
       details,
@@ -52,9 +80,12 @@ function describeResult(result: AssistantResult, timeZone: string) {
     };
   }
   if (result.kind === 'delete') {
+    const details = [`Alvo: ${result.target.title} — ${formatWhen(result.target.startsAt, timeZone)}`];
+    const recurrence = formatRecurrence(result.target.recurrence?.byWeekday);
+    if (recurrence) details.push(recurrence);
     return {
       title: 'Proposta de exclusão',
-      details: [`Alvo: ${result.target.title} — ${formatWhen(result.target.startsAt, timeZone)}`],
+      details,
       confirmLabel: 'Confirmar exclusão',
       confirmable: true,
     };
@@ -70,6 +101,7 @@ function describeResult(result: AssistantResult, timeZone: string) {
 export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpired, onReload }: AssistantPanelProps) {
   const [text, setText] = useState('');
   const [result, setResult] = useState<AssistantResult | null>(null);
+  const [scope, setScope] = useState<RecurrenceScope>('occurrence');
   const [error, setError] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -84,6 +116,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
     setHasConflict(false);
     setNotice(null);
     setResult(null);
+    setScope('occurrence');
     try {
       setResult(await interpretRequest(text, timeZone));
     } catch (caught) {
@@ -113,13 +146,15 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
           startsAt: result.changes.startsAt ?? result.target.startsAt,
           timeZone: result.changes.timeZone ?? result.target.timeZone,
           version: result.target.version,
+          ...(needsScope(result) ? { scope } : {}),
         }));
       } else {
-        await deleteEvent(result.target.id, result.target.version);
+        await deleteEvent(result.target.id, result.target.version, undefined, needsScope(result) ? scope : undefined);
         onDeleted();
       }
       setResult(null);
       setText('');
+      setScope('occurrence');
       setNotice('Alteração aplicada à sua agenda.');
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) {
@@ -139,6 +174,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
 
   function handleReject() {
     setResult(null);
+    setScope('occurrence');
     setNotice('Proposta rejeitada. Nada foi alterado.');
   }
 
@@ -161,7 +197,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
           value={text}
           maxLength={500}
           rows={2}
-          placeholder="Ex.: Crie reunião de plano amanhã às 10"
+          placeholder="Ex.: Buscar o Thor toda quinta às 10"
           onChange={(event) => setText(event.target.value)}
         />
         <Button type="submit" disabled={!text.trim() || isInterpreting}>
@@ -185,6 +221,31 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
         <div className={`assistant-result assistant-result-${result?.kind}`}>
           <h3>{view.title}</h3>
           {view.details.map((detail) => <p key={detail}>{detail}</p>)}
+          {needsScope(result) ? (
+            <fieldset className="scope-fieldset assistant-scope">
+              <legend>Aplicar em</legend>
+              <label className="scope-option">
+                <input
+                  type="radio"
+                  name="assistant-scope"
+                  checked={scope === 'occurrence'}
+                  onChange={() => setScope('occurrence')}
+                  disabled={isApplying}
+                />
+                Apenas esta ocorrência
+              </label>
+              <label className="scope-option">
+                <input
+                  type="radio"
+                  name="assistant-scope"
+                  checked={scope === 'series'}
+                  onChange={() => setScope('series')}
+                  disabled={isApplying}
+                />
+                Toda a série
+              </label>
+            </fieldset>
+          ) : null}
           {view.confirmable ? (
             <div className="assistant-actions">
               <Button onClick={() => void handleConfirm()} disabled={isApplying}>
@@ -196,7 +257,7 @@ export function AssistantPanel({ timeZone, onApplied, onDeleted, onSessionExpire
             </div>
           ) : (
             <div className="assistant-actions">
-              <Button variant="secondary" onClick={() => setResult(null)}>
+              <Button variant="secondary" onClick={() => { setResult(null); setScope('occurrence'); }}>
                 Limpar
               </Button>
             </div>

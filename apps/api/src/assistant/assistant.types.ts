@@ -1,7 +1,13 @@
+export type AssistantRecurrence = {
+  frequency: "weekly";
+  byWeekday: number[];
+};
+
 export type AssistantDraft = {
   title: string;
   startsAt: string;
   timeZone: string;
+  recurrence?: AssistantRecurrence;
 };
 
 export type AssistantTarget = {
@@ -10,6 +16,11 @@ export type AssistantTarget = {
   startsAt: string;
   timeZone: string;
   version: number;
+  source?: "one-off" | "recurring";
+  seriesId?: string;
+  occurrenceKey?: string;
+  isException?: boolean;
+  recurrence?: AssistantRecurrence;
 };
 
 export type AssistantEvidence = {

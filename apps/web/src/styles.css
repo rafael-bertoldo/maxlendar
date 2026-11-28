@@ -290,3 +290,13 @@ button { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+.recurrence-control, .scope-fieldset { display: flex; flex-direction: column; gap: 10px; }
+.recurrence-toggle, .scope-option, .weekday-option { display: inline-flex; align-items: center; gap: 8px; color: #3c4560; font-size: 12px; }
+.recurrence-toggle input, .scope-option input, .weekday-option input { accent-color: var(--violet); }
+.weekday-fieldset, .scope-fieldset { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.weekday-fieldset legend, .scope-fieldset legend { padding: 0 4px; color: #343d57; font-size: 11px; font-weight: 700; }
+.weekday-options { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.assistant-scope { margin-top: 10px; }
+.event-recurrence-badge { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 999px; color: var(--violet-dark); background: #e5e1ff; font-size: 9px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.event-item-compact .event-recurrence-badge { padding: 1px 5px; font-size: 8px; }

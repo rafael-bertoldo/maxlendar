@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../shared/api/client';
-import { createEvent, deleteEvent, updateEvent, type CalendarEvent } from '../../shared/api/events';
+import {
+  createEvent,
+  deleteEvent,
+  updateEvent,
+  type CalendarEvent,
+  type RecurrenceScope,
+} from '../../shared/api/events';
 import {
   formatEventDateTime,
   formatTime,
@@ -28,7 +34,10 @@ type FieldErrors = {
   title?: string;
   date?: string;
   time?: string;
+  recurrence?: string;
 };
+
+const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function EventForm({
   open,
@@ -45,6 +54,9 @@ export function EventForm({
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(() => toDateInputValue(initialDate));
   const [time, setTime] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [byWeekday, setByWeekday] = useState<number[]>([]);
+  const [scope, setScope] = useState<RecurrenceScope>('occurrence');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [timeAdjustment, setTimeAdjustment] = useState<string | null>(null);
@@ -73,6 +85,10 @@ export function EventForm({
     setTitle(event?.title ?? '');
     setDate(toDateInputValue(startDate));
     setTime(toTimeInputValue(startDate));
+    const recurringDays = event?.recurrence?.byWeekday ?? [];
+    setIsRecurring(!event && recurringDays.length > 0 ? true : false);
+    setByWeekday(recurringDays.length > 0 ? [recurringDays[0]] : [startDate.getDay()]);
+    setScope('occurrence');
     setErrors({});
     setFormError(null);
     setTimeAdjustment(null);
@@ -130,9 +146,12 @@ export function EventForm({
     if (!hasValidTime) {
       nextErrors.time = 'Informe um horário válido.';
     }
+    if (!event && isRecurring && byWeekday.length === 0) {
+      nextErrors.recurrence = 'Selecione um dia da semana.';
+    }
 
     setErrors(nextErrors);
-    if (!parsed || nextErrors.title) return;
+    if (!parsed || nextErrors.title || nextErrors.recurrence) return;
 
     setFormError(null);
     setNeedsReload(false);
@@ -150,11 +169,16 @@ export function EventForm({
       startsAt: parsed.date.toISOString(),
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
+    const recurrence = !event && isRecurring ? { frequency: 'weekly' as const, byWeekday } : undefined;
 
     try {
       const savedEvent = event
-        ? await updateEvent(event.id, { ...input, version: event.version }, controller.signal)
-        : await createEvent(input, controller.signal);
+        ? await updateEvent(
+            event.id,
+            { ...input, version: event.version, ...(canEditScope ? { scope } : {}) },
+            controller.signal,
+          )
+        : await createEvent({ ...input, ...(recurrence ? { recurrence } : {}) }, controller.signal);
       onSaved(savedEvent);
     } catch (error) {
       handleRequestError(error, event ? 'Não foi possível alterar o evento.' : 'Não foi possível salvar o evento.');
@@ -174,7 +198,7 @@ export function EventForm({
     requestRef.current = controller;
 
     try {
-      await deleteEvent(event.id, event.version, controller.signal);
+      await deleteEvent(event.id, event.version, controller.signal, canEditScope ? scope : undefined);
       onDeleted();
     } catch (error) {
       handleRequestError(error, 'Não foi possível excluir o evento.');
@@ -185,6 +209,13 @@ export function EventForm({
   }
 
   const viewerTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const canEditScope = Boolean(event && (event.source === 'recurring' || event.isException));
+  const scopeLabel = scope === 'series' ? 'toda a série' : 'apenas esta ocorrência';
+
+  function selectWeekday(day: number) {
+    setByWeekday([day]);
+    setErrors((current) => ({ ...current, recurrence: undefined }));
+  }
 
   return (
     <dialog
@@ -206,8 +237,33 @@ export function EventForm({
             <h2>Remover este evento?</h2>
             <p className="event-dialog-subtitle">
               <strong>{event.title}</strong> — {formatEventDateTime(event.startsAt)} no fuso {viewerTimeZone}.
-              Esta ação não pode ser desfeita.
+              Esta ação vai excluir {scopeLabel} e não pode ser desfeita.
             </p>
+            {canEditScope ? (
+              <fieldset className="scope-fieldset">
+                <legend>Aplicar exclusão em</legend>
+                <label className="scope-option">
+                  <input
+                    type="radio"
+                    name="delete-scope"
+                    checked={scope === 'occurrence'}
+                    onChange={() => setScope('occurrence')}
+                    disabled={isSubmitting}
+                  />
+                  Apenas esta ocorrência
+                </label>
+                <label className="scope-option">
+                  <input
+                    type="radio"
+                    name="delete-scope"
+                    checked={scope === 'series'}
+                    onChange={() => setScope('series')}
+                    disabled={isSubmitting}
+                  />
+                  Toda a série
+                </label>
+              </fieldset>
+            ) : null}
             <div className="delete-actions">
               <Button variant="secondary" onClick={() => setIsConfirmingDeletion(false)} disabled={isSubmitting}>
                 Voltar
@@ -271,6 +327,65 @@ export function EventForm({
                   required
                 />
               </div>
+              {!event ? (
+                <div className="recurrence-control">
+                  <label className="recurrence-toggle">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(changeEvent) => {
+                        setIsRecurring(changeEvent.target.checked);
+                        setErrors((current) => ({ ...current, recurrence: undefined }));
+                      }}
+                    />
+                    Repetir semanalmente
+                  </label>
+                  {isRecurring ? (
+                    <fieldset className="weekday-fieldset">
+                      <legend>Dia da semana</legend>
+                      <div className="weekday-options">
+                        {WEEKDAY_LABELS.map((label, index) => (
+                          <label className="weekday-option" key={label}>
+                            <input
+                              type="radio"
+                              name="recurrence-weekday"
+                              checked={byWeekday[0] === index}
+                              onChange={() => selectWeekday(index)}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                      {errors.recurrence ? <span className="field-error">{errors.recurrence}</span> : null}
+                    </fieldset>
+                  ) : null}
+                </div>
+              ) : null}
+              {canEditScope ? (
+                <fieldset className="scope-fieldset">
+                  <legend>Aplicar alterações em</legend>
+                  <label className="scope-option">
+                    <input
+                      type="radio"
+                      name="edit-scope"
+                      checked={scope === 'occurrence'}
+                      onChange={() => setScope('occurrence')}
+                      disabled={isSubmitting}
+                    />
+                    Apenas esta ocorrência
+                  </label>
+                  <label className="scope-option">
+                    <input
+                      type="radio"
+                      name="edit-scope"
+                      checked={scope === 'series'}
+                      onChange={() => setScope('series')}
+                      disabled={isSubmitting}
+                    />
+                    Toda a série
+                  </label>
+                </fieldset>
+              ) : null}
               <Button type="submit" className="submit-button" disabled={isSubmitting}>
                 {isSubmitting ? 'Salvando…' : event ? 'Salvar alterações' : 'Salvar evento'}
               </Button>

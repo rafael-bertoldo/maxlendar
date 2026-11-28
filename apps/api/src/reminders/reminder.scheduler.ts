@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { PushSender } from "./push-sender";
+import { ReminderService } from "./reminder.service";
 
 const MAX_LOOKBACK_MS = 10 * 60_000;
 
@@ -12,6 +13,7 @@ export class ReminderScheduler implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sender: PushSender,
+    private readonly reminders: ReminderService,
   ) {}
 
   onModuleInit(): void {
@@ -25,11 +27,30 @@ export class ReminderScheduler implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  private async refreshSeriesHorizons(): Promise<void> {
+    const series = await this.prisma.recurringEvent.findMany({
+      where: { deletedAt: null },
+      select: { id: true },
+    });
+
+    for (const entry of series) {
+      await this.reminders.rescheduleSeries(entry.id);
+    }
+  }
+
   async tick(): Promise<void> {
+    await this.refreshSeriesHorizons();
+
     const due = await this.prisma.reminder.findMany({
       where: { status: "pending", scheduledFor: { lte: new Date() } },
-      include: {
-        event: { select: { title: true, startsAt: true } },
+      select: {
+        id: true,
+        eventId: true,
+        seriesId: true,
+        occurrenceKey: true,
+        eventTitle: true,
+        eventStartsAt: true,
+        scheduledFor: true,
         user: { select: { pushSubscriptions: true } },
       },
       take: 50,
@@ -50,11 +71,13 @@ export class ReminderScheduler implements OnModuleInit, OnModuleDestroy {
 
       const payload = JSON.stringify({
         title: "Lembrete do maxlendar",
-        body: `${reminder.event.title} começa em breve.`,
+        body: `${reminder.eventTitle} começa em breve.`,
         url: "/",
-        eventTitle: reminder.event.title,
+        eventTitle: reminder.eventTitle,
         eventId: reminder.eventId,
-        startsAt: reminder.event.startsAt.toISOString(),
+        seriesId: reminder.seriesId,
+        occurrenceKey: reminder.occurrenceKey,
+        startsAt: reminder.eventStartsAt.toISOString(),
       });
 
       let delivered = false;

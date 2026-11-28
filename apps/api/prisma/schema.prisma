@@ -19,11 +19,12 @@ model User {
 }
 
 model Calendar {
-  id        String          @id @default(cuid())
-  userId    String          @unique
-  createdAt DateTime        @default(now())
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  events    CalendarEvent[]
+  id              String            @id @default(cuid())
+  userId          String            @unique
+  createdAt       DateTime          @default(now())
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events          CalendarEvent[]
+  recurringEvents RecurringEvent[]
 }
 
 model Session {
@@ -36,18 +37,52 @@ model Session {
 }
 
 model CalendarEvent {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   calendarId       String
-  calendar         Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  calendar         Calendar  @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   title            String
   startsAt         DateTime
   creationTimeZone String
-  version          Int      @default(1)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  version          Int       @default(1)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   reminders        Reminder[]
 
   @@index([calendarId, startsAt])
+}
+
+model RecurringEvent {
+  id          String                @id @default(cuid())
+  calendarId  String
+  calendar    Calendar              @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  title       String
+  weekday     Int
+  localTime   String
+  timeZone    String
+  version     Int                   @default(1)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  deletedAt   DateTime?
+  occurrences RecurringOccurrence[]
+  reminders   Reminder[]
+
+  @@index([calendarId, deletedAt])
+}
+
+model RecurringOccurrence {
+  id        String          @id @default(cuid())
+  seriesId  String
+  series    RecurringEvent  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  localDate String
+  startsAt  DateTime?
+  title     String?
+  deleted   Boolean         @default(false)
+  version   Int             @default(1)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([seriesId, localDate])
+  @@index([seriesId, deleted])
 }
 
 model PushSubscription {
@@ -63,18 +98,27 @@ model PushSubscription {
 }
 
 model Reminder {
-  id           String        @id @default(cuid())
-  eventId      String
-  event        CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String           @id @default(cuid())
+  eventId       String?
+  event         CalendarEvent?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seriesId      String?
+  series        RecurringEvent?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  occurrenceKey String?
+  eventTitle    String
+  eventStartsAt DateTime
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   offsetMinutes Int
-  scheduledFor DateTime
-  status       String        @default("pending")
-  sentAt       DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  scheduledFor  DateTime
+  status        String           @default("pending")
+  sentAt        DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
+  @@unique([eventId, offsetMinutes])
+  @@unique([seriesId, occurrenceKey, offsetMinutes])
   @@index([scheduledFor, status])
   @@index([eventId, status])
+  @@index([seriesId, status])
+  @@index([seriesId, occurrenceKey, scheduledFor])
 }

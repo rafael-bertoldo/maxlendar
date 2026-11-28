@@ -96,11 +96,12 @@ Candidate entities:
 - `User`: unique canonical username and password hash.
 - `Session`: one independently revocable record per device/browser installation; store a hash of the session secret rather than the bearer secret.
 - `CalendarEvent`: owner, title, scheduled instant, creation time zone, timestamps, and a version for conflict detection.
+- `RecurringEvent` and `RecurringOccurrence`: weekly rule plus persisted exceptions; normal occurrences are expanded on read ([ADR 0011](../decisions/0011-weekly-recurrence.md)).
 - `PushSubscription`: user/session association, endpoint, cryptographic keys, and last-seen/expiration metadata.
 - `ReminderDelivery`: event, reminder offset, due instant, status, attempt count, and idempotency key.
 - `AssistantProposal`: user, action, target event/version, proposed fields, status, and expiry until user confirmation.
 
-The user decided that events are fixed instants displayed in each viewer's local time zone, while the creating device's IANA time zone is kept as provenance. See [ADR 0004](../decisions/0004-event-time-zone.md). The client converts local date/time input to an ISO instant with an explicit offset; the API stores and queries the instant in UTC. Daylight-saving ambiguous/nonexistent input times are resolved by the browser's `Date` conversion in the MVP. Calendar ranges are half-open intervals, and the week starts on Monday.
+The user decided that events are fixed instants displayed in each viewer's local time zone, while the creating device's IANA time zone is kept as provenance. See [ADR 0004](../decisions/0004-event-time-zone.md). The client converts local date/time input to an ISO instant with an explicit offset; the API stores and queries the instant in UTC. Daylight-saving ambiguous/nonexistent input times are resolved by the browser's `Date` conversion in the MVP. Calendar ranges are half-open intervals, and the week starts on Monday. Weekly recurrence adds a rule plus exception rows and expands occurrences on read, as recorded in [ADR 0011](../decisions/0011-weekly-recurrence.md).
 
 ## API and synchronization
 
@@ -132,7 +133,7 @@ Do not schedule reminders with per-event in-memory timers; process restarts woul
 
 Delivery is at-least-once in rare crash windows (for example, the process can stop after a push is accepted but before the row is marked sent), so a duplicate push cannot be ruled out. Keep this limitation visible rather than introducing queue infrastructure for the MVP.
 
-If an event is created or edited after one or both reminder times have passed, define whether past reminders are skipped; recommended MVP behavior is to schedule only future reminders. Delivery remains best-effort: subscriptions expire, users can revoke permission, and browsers/platforms differ. Surface permission and delivery state clearly; do not claim guaranteed delivery.
+If an event is created or edited after one or both reminder times have passed, define whether past reminders are skipped; recommended MVP behavior is to schedule only future reminders. Delivery remains best-effort: subscriptions expire, users can revoke permission, and browsers/platforms differ. Surface permission and delivery state clearly; do not claim guaranteed delivery. For recurring series, reminder rows are generated inside a rolling 48-hour horizon and refreshed by the same scheduler; see [ADR 0011](../decisions/0011-weekly-recurrence.md).
 
 ## AI flows and boundaries
 
@@ -172,5 +173,6 @@ The user-selected backend framework and database are recorded in:
 - [`0002-sqlite-database.md`](../decisions/0002-sqlite-database.md)
 - [`0003-prisma-orm.md`](../decisions/0003-prisma-orm.md)
 - [`0004-event-time-zone.md`](../decisions/0004-event-time-zone.md) for the selected event instant and viewer time-zone display rule.
+- [`0011-weekly-recurrence.md`](../decisions/0011-weekly-recurrence.md) for rule expansion, occurrence exceptions, DST adjustment, reminder horizon, and two-level versioning.
 
 Create further ADRs if implementation requires a decision on sessions, time-zone semantics, push/synchronization, or the AI provider.

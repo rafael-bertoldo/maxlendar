@@ -1,11 +1,24 @@
 import { readApiError } from './client';
 
+export type Recurrence = {
+  frequency: 'weekly';
+  byWeekday: number[];
+};
+
+export type EventSource = 'one-off' | 'recurring';
+export type RecurrenceScope = 'occurrence' | 'series';
+
 export type CalendarEvent = {
   id: string;
   title: string;
   startsAt: string;
   timeZone: string;
   version: number;
+  source: EventSource;
+  seriesId?: string;
+  occurrenceKey?: string;
+  isException?: boolean;
+  recurrence?: Recurrence;
 };
 
 export async function listEvents(
@@ -42,6 +55,7 @@ export async function createEvent(
     title: string;
     startsAt: string;
     timeZone: string;
+    recurrence?: Recurrence;
   },
   signal?: AbortSignal,
 ): Promise<CalendarEvent> {
@@ -76,11 +90,14 @@ export async function deleteEvent(
   id: string,
   version: number,
   signal?: AbortSignal,
+  scope?: RecurrenceScope,
 ): Promise<void> {
   let response: Response;
 
   try {
-    response = await fetch(`/api/events/${encodeURIComponent(id)}?version=${version}`, {
+    const query = new URLSearchParams({ version: String(version) });
+    if (scope) query.set('scope', scope);
+    response = await fetch(`/api/events/${encodeURIComponent(id)}?${query.toString()}`, {
       method: 'DELETE',
       credentials: 'include',
       signal,
@@ -102,6 +119,7 @@ export async function updateEvent(
     startsAt: string;
     timeZone: string;
     version: number;
+    scope?: RecurrenceScope;
   },
   signal?: AbortSignal,
 ): Promise<CalendarEvent> {
