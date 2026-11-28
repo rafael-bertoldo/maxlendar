@@ -1,7 +1,7 @@
 # Product Backlog
 
-**Status:** MVP draft; US-01 to US-15 implemented, with QA evidence recorded under [`docs/qa/`](qa/). US-16 is a new proposal awaiting PO validation; it is not implemented.
-**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md), and ADRs 0001–0010.  
+**Status:** MVP draft; US-01 a US-11 e US-16 implementadas, com evidências QA em [`docs/qa/`](qa/). US-17 decidida e implementada: assistente removido da aplicação; US-12 a US-15 retiradas/encerradas por US-17. ADRs 0009 e 0010 supercedidas/retiradas.
+**Source:** [Product brief](product-brief.md), [architecture overview](architecture/overview.md) e ADRs 0001–0011 (0009/0010 históricas).
 
 The stories below describe observable user outcomes. Items marked **Open decision** have acceptance details that must be settled before implementation or final QA sign-off; they are not implicit product decisions.
 
@@ -151,6 +151,8 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 
 ### US-12 — Create an event from natural language with confirmation
 
+**Status:** RETIRADA/encerrada por [US-17](#us-17--remover-o-assistente-da-aplicação) (2026-11-28). Histórico preservado.
+
 **Description:** As a user, I want the assistant to turn a natural-language description into a draft event, so that I can add an event quickly while checking the extracted details before saving.
 
 **Acceptance criteria:**
@@ -162,9 +164,11 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** A local deterministic interpreter resolves supported Portuguese relative dates/times in the viewer's time zone; missing or unsupported details produce a clarification, never an implicit save ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers representative create phrases, missing title/date/time, DST-ambiguous local input, rejection, and confirmation through the existing event endpoint.
 
-**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-12](qa/US-12.md).
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-12](qa/US-12.md). **Encerramento US-17:** funcionalidade removida do produto/código; evidências históricas preservadas.
 
 ### US-13 — Ask questions about my calendar
+
+**Status:** RETIRADA/encerrada por [US-17](#us-17--remover-o-assistente-da-aplicação) (2026-11-28). Histórico preservado.
 
 **Description:** As a user, I want to ask the assistant questions about my events, so that I can understand my schedule using natural language.
 
@@ -176,9 +180,11 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Questions are answered only from the signed-in user's events in a resolved range; no match produces an explicit “no events found” answer and ambiguous ranges produce a clarification ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers “hoje”, “amanhã”, “próxima semana”, no-match answers, cross-user isolation, and ambiguous wording.
 
-**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-13](qa/US-13.md).
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-13](qa/US-13.md). **Encerramento US-17:** funcionalidade removida do produto/código; evidências históricas preservadas.
 
 ### US-14 — Review and confirm an AI-proposed event change
+
+**Status:** RETIRADA/encerrada por [US-17](#us-17--remover-o-assistente-da-aplicação) (2026-11-28). Histórico preservado.
 
 **Description:** As a user, I want the assistant to prepare an edit to an event and show me the proposed changes, so that I can correct my calendar with natural language while retaining control.
 
@@ -191,9 +197,11 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Edit targets are matched by title tokens within a 14-day window around the viewer's reference date; zero or multiple matches require clarification, and confirmation uses the stored `version` through `PATCH` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, and a `409 VERSION_CONFLICT` case.
 
-**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-14](qa/US-14.md).
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-14](qa/US-14.md). **Encerramento US-17:** funcionalidade removida do produto/código; evidências históricas preservadas.
 
 ### US-15 — Review and confirm an AI-proposed event deletion
+
+**Status:** RETIRADA/encerrada por [US-17](#us-17--remover-o-assistente-da-aplicação) (2026-11-28). Histórico preservado.
 
 **Description:** As a user, I want the assistant to prepare deletion of an event and show me which event it will remove, so that I can use natural language to manage my calendar without accidental deletion.
 
@@ -206,20 +214,20 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - **Decided 2026-11-26:** Deletion targets use the same title-token disambiguation as edits; multiple matches, missing targets, or unclear requests produce a clarification, and confirmation uses the stored `version` through `DELETE` ([ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md)).
 - **Quality evidence:** QA covers one clear target, multiple similar titles, missing target, rejected proposal, `409`, and cancellation of pending reminders after confirmation.
 
-**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-15](qa/US-15.md).
+**Delivery:** Implemented in `174dac2`, adjusted in `10269bd`; QA report: [US-15](qa/US-15.md). **Encerramento US-17:** funcionalidade removida do produto/código; evidências históricas preservadas.
 
 ### US-16 — Salvar um evento com recorrência semanal
 
-**Status:** Implementada em 2026-11-28; decisões validadas em [ADR 0011](decisions/0011-weekly-recurrence.md) e evidências em [QA US-16](qa/US-16.md). **Origem:** Pedido do usuário de incluir recorrência ao salvar, com o exemplo “buscar o Thor todas as quintas às 10”.
+**Status:** Implementada em 2026-11-28; decisões validadas em [ADR 0011](decisions/0011-weekly-recurrence.md) e evidências em [QA US-16](qa/US-16.md). Atualizada por US-17: critérios dependentes do assistente retirados; recorrência semanal permanece ativa. **Origem:** Pedido do usuário de incluir recorrência ao salvar, com o exemplo “buscar o Thor todas as quintas às 10”.
 
-**Description:** Como usuário, quero salvar um evento com uma regra de recorrência informada no momento da criação, inclusive pelo assistente, para não precisar criar manualmente cada ocorrência.
+**Description:** Como usuário, quero salvar um evento com uma regra de recorrência informada no momento da criação, para não precisar criar manualmente cada ocorrência.
 
 **Acceptance criteria:**
 
-- Dado que estou autenticado, quando peço ao assistente para criar “Buscar o Thor todas as quintas às 10”, então o rascunho de criação mostra o título, a primeira ocorrência futura no horário local informado e a recorrência semanal às quintas, e nenhum evento é salvo antes da confirmação.
-- Dado o rascunho recorrente exibido, quando confirmo a criação, então o evento passa a aparecer na ocorrência apresentada e nas quintas seguintes dos intervalos consultados.
+- *(Retirado por US-17)* Criação de rascunho recorrente via assistente e confirmação antes de salvar.
+- *(Retirado por US-17)* Confirmação de rascunho recorrente exibido pelo assistente.
 - Dado que preencho o formulário manual, quando escolho repetir semanalmente e informo o dia da semana e o horário, então a mesma recorrência é salva e visível no evento.
-- Dado uma frase ou formulário com recorrência sem dia da semana, sem horário ou com cadência/data de fim não suportados, então o produto pede o dado faltante ou explica o limite e não salva o evento.
+- Dado um formulário com recorrência sem dia da semana, sem horário ou com cadência/data de fim não suportados, então o produto pede o dado faltante ou explica o limite e não salva o evento.
 - Dado um evento recorrente salvo, quando visualizo dia, semana ou mês, então cada ocorrência no intervalo é exibida com título e horário local, e os lembretes padrão da US-11 se aplicam a cada ocorrência futura.
 - Dado que a recorrência gera um horário ambíguo ou inexistente no fuso de criação, então o produto não salva uma ocorrência inválida sem esclarecimento.
 - Dado um evento recorrente salvo, quando solicito uma edição ou exclusão, então o produto me oferece a escolha entre “apenas esta ocorrência” e “toda a série” antes de aplicar a mudança.
@@ -234,13 +242,50 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Ao editar ou excluir um evento recorrente, o usuário escolhe explicitamente entre aplicar a mudança a uma ocorrência ou a toda a série, sem padrão silencioso; essa escolha faz parte da revisão antes da confirmação.
 - “Apenas esta ocorrência” é uma exceção editável: aquela data pode ter título/horário próprios ou ser removida, sem alterar as demais ocorrências da série.
 - Os lembretes padrão da US-11 valem para toda ocorrência futura; a janela técnica de agendamento é decisão do Architect.
-- A recorrência usa o horário local do fuso de criação em cada ocorrência; horários ambíguos ou inexistentes seguem a regra de clarificação já adotada nas US-12 a US-15.
+- A recorrência usa o horário local do fuso de criação em cada ocorrência; horários ambíguos ou inexistentes seguem regra de clarificação/validação, sem salvar ocorrência inválida silenciosamente.
 - Em ocorrências futuras, horário ambíguo usa o primeiro instante válido e horário inexistente é deslocado para o próximo minuto válido no mesmo dia; se não houver, a ocorrência é ignorada e a limitação é documentada.
-- A escolha de escopo aparece no card de revisão do assistente, junto da confirmação, e em um diálogo na edição manual; frases ambíguas do assistente pedem clarificação.
+- **Atualizado por US-17:** a escolha de escopo aparece no fluxo manual de edição/exclusão; referências a card de revisão do assistente e frases ambíguas do assistente foram retiradas.
 
 **Handoff ao Architect resolvido em [ADR 0011](decisions/0011-weekly-recurrence.md):**
 
 - Expansão da série na leitura, exceções persistidas, horizonte de lembretes de 48 horas e versioning em dois níveis (série e exceção).
+
+### US-17 — Remover o assistente da aplicação
+
+**Status:** Decidida e implementada (2026-11-28); prioridade alta. **Origem:** Pedido do usuário para que o PO criasse esta história e a passasse aos devs.
+
+**Fatos, hipóteses e decisões:**
+
+- Fato: o usuário decidiu remover o assistente da aplicação.
+- Decisão: remoção completa da funcionalidade nas superfícies de produto: interface, API, tipos compartilhados, módulo backend e documentação vigente. Recorrência semanal, lembretes e fluxos manuais de eventos permanecem.
+- Hipótese, ainda não validada como requisito: reduzir superfície de manutenção e evitar interações ambíguas pode ser mais valioso que manter a entrada de linguagem natural.
+- Risco: a remoção contraria a narrativa atual de produto AI-first. PO e Architect devem registrar a mudança de posicionamento sem apagar o histórico das decisões anteriores.
+
+**Description:** Como usuário, quero usar a agenda sem o assistente, para que criar, editar, excluir e revisar eventos aconteça pelos fluxos manuais já existentes, com limites e erros compreensíveis.
+
+**Acceptance criteria:**
+
+- Dado um usuário autenticado, quando abro a agenda, então não há painel, botão, texto ou estado “Assistente da agenda” nem qualquer chamada para `/api/assistant/interpret`.
+- Dado um cliente HTTP, quando envio `POST /api/assistant/interpret`, então a rota não existe e responde `404`; o módulo, controller, service e tipos do assistente não ficam registrados no backend.
+- Dado o código-fonte após a remoção, quando executo `git grep -i assistant`, então não há referências em código ativo; referências em documentação histórica apenas aparecem como supercedidas ou arquivadas.
+- Dado um usuário usando os fluxos manuais, quando crio, edito, excluo ou conflito com outro dispositivo, então as operações e mensagens atuais continuam funcionando.
+- Dado um evento recorrente, quando visualizo, edito, excluo uma ocorrência ou toda a série e recebo lembretes, então o comportamento da US-16 permanece sem depender do assistente.
+- Dado o código compartilhado, quando a remoção é aplicada, então `local-time.ts`, `ListEvents`, endpoints `/api/events`, `RecurrenceScope`, estilos de escopo e `handleVersionConflict` são preservados por serem usados pelos fluxos manuais.
+- Dado a documentação, quando a história é concluída, então ADRs 0009 e 0010 são marcados como supercedidos, ADR 0011 é preservado com as referências ao assistente ajustadas, arquitetura, product brief e backlog deixam de descrever o assistente como recurso vigente, e os critérios da US-16 que dependem dele são retirados ou marcados como retirados.
+- Dado o download de produção, quando faço `npm run typecheck && npm run build`, então ambos terminam com exit `0` e o bundle não contém “Assistente da agenda” nem `/api/assistant`.
+- Dado a remoção concluída, quando QA executa os fluxos manuais de evento, recorrência, conflito `409` e lembretes, então as evidências são registradas em `docs/qa/US-17.md`.
+
+**Handoff aos devs:**
+
+- Backend: remover `apps/api/src/assistant/`, o registro em `app.module.ts` e o `exports: [ListEvents]` que só existia para o assistente, mantendo o provider `ListEvents`.
+- Frontend: remover `features/assistant/`, `shared/api/assistant.ts`, handlers e renderização em `CalendarPage.tsx`, e apenas as classes `.assistant-*` de `styles.css`.
+- Docs/QA: atualizar decisões e narrativa conforme os critérios acima; escrever `docs/qa/US-17.md` com as evidências de regressão.
+
+**Fora de escopo:**
+
+- Reescrever o histórico Git ou apagar ADRs e relatórios QA antigos.
+- Remover recorrência semanal, lembretes, versioning ou fluxos manuais de eventos.
+- Substituir o assistente por outro recurso de IA nesta história.
 
 ## Out of scope for the MVP
 
@@ -249,7 +294,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 - Event description, location, duration, and end time.
 - Per-event reminder customization.
 - Native app-store releases.
-- AI operations that change or delete data without the user's review and confirmation.
+- **Retired by US-17:** AI assistant flows (US-12 to US-15), including natural-language create/question/edit/delete proposals.
 
 ## Open product and delivery questions
 
@@ -257,7 +302,7 @@ The stories below describe observable user outcomes. Items marked **Open decisio
 2. ~~How should events be displayed when the user views the calendar in a different time zone, and how should daylight-saving ambiguous/nonexistent local times be handled?~~ Resolved for the MVP in [ADR 0004](decisions/0004-event-time-zone.md): fixed instant displayed in the viewer's zone, with browser-side conversion of local input.
 3. ~~What should happen when push permission is denied, unavailable, or revoked, and which browser/platform combinations are supported?~~ Resolved for the MVP in [ADR 0008](decisions/0008-web-push-reminders.md): explicit opt-in only, non-blocking messaging, best-effort browser-dependent delivery.
 4. How quickly must changes appear on other devices, and how should concurrent edits be surfaced or resolved?
-5. ~~What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?~~ Resolved for the MVP in [ADR 0009](decisions/0009-assistant-contract.md) and [ADR 0010](decisions/0010-local-assistant.md): read-only structured interpretation, explicit clarifications, confirmation via existing endpoints, and QA evidence sets per story.
+5. ~~What should the assistant do for ambiguous event dates, incomplete requests, and multiple matching event targets? Which examples and quality criteria define acceptable AI results?~~ Resolved for the MVP in [ADR 0009](decisions/0009-assistant-contract.md) and [ADR 0010](decisions/0010-local-assistant.md) while assistant was active; retired by [US-17](#us-17--remover-o-assistente-da-aplicação).
 6. What authentication session mechanism satisfies persistent per-device sessions without automatic expiry, and how should architecture address loss of a device?
-7. Partially resolved for the MVP: [ADR 0010](decisions/0010-local-assistant.md) uses a local assistant with no external AI provider, and [ADR 0008](decisions/0008-web-push-reminders.md) uses project-generated VAPID instead of a hosted push provider. Hosting provider selection remains open for deployment.
+7. ~~AI provider/local assistant selection.~~ Retired by US-17. [ADR 0008](decisions/0008-web-push-reminders.md) uses project-generated VAPID instead of a hosted push provider. Hosting provider selection remains open for deployment.
 8. ~~For US-16, what edit/delete semantics should be decided before implementation starts?~~ Resolved on 2026-11-28 in US-16: explicit scope choice in review, editable exception for one occurrence. Technical representation and reminder window remain with the Architect.

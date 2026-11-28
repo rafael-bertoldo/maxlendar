@@ -1,6 +1,6 @@
 # Proposed Architecture Overview
 
-**Status:** Architecture proposal; backend framework and database selected by the user  
+**Status:** Architecture proposal; backend framework and database selected by the user. Updated by US-17 (2026-11-28): assistant removed from active product/architecture.
 **Based on:** [Product brief](../product-brief.md)
 
 ## User-selected constraints
@@ -13,13 +13,13 @@
 - Frontend: React with TypeScript; Next.js is not required.
 - Keep the architecture solid and understandable for a portfolio. Apply Clean Architecture and SOLID where they reduce coupling or clarify responsibilities. Use CQRS only where it is justified.
 - Prefer a component-based frontend organization; Atomic Design may be used as a vocabulary for reusable UI, not as a rigid folder taxonomy.
-- The product is a responsive, installable PWA with cross-device event synchronization, scheduled push notifications, and AI-assisted calendar flows.
+- The product is a responsive, installable PWA with cross-device event synchronization and scheduled push notifications. **Retired by US-17:** AI-assisted calendar flows.
 
 ## Recommendation
 
 Use a **TypeScript modular monolith**: one React PWA and one NestJS application backed by a SQLite database file on persistent storage. Run the durable reminder scheduler inside the same NestJS process. Keep deployment simple: one always-on application instance, one persistent volume, and a backup plan. Do not add a separate worker process, microservices, event sourcing, Redis, an external queue, or a separate read database for the MVP.
 
-Use NestJS modules as feature boundaries and apply Clean Architecture pragmatically: domain rules do not depend on HTTP, SQLite, AI provider, or push provider details. Organize around product modules first, and use ports/adapters at boundaries where provider or infrastructure changes are plausible.
+Use NestJS modules as feature boundaries and apply Clean Architecture pragmatically: domain rules do not depend on HTTP, SQLite, or push provider details. Organize around product modules first, and use ports/adapters at boundaries where provider or infrastructure changes are plausible. **Retired by US-17:** AI provider boundary.
 
 ## Backend framework
 
@@ -37,7 +37,6 @@ flowchart LR
   API --> DB[(SQLite on persistent volume)]
   Scheduler[In-process reminder scheduler] --> DB
   Scheduler --> Push[Web Push service]
-  API --> AI[AI provider adapter]
   Push --> PWA
 ```
 
@@ -51,13 +50,13 @@ Recommended feature modules:
 - **Calendar Events:** event validation and create/update/delete/list use cases.
 - **Reminders:** durable reminder records, scheduling, delivery state, cancellation/rescheduling after event changes.
 - **Push Subscriptions:** register and remove browser installation subscriptions for a calendar/user.
-- **Assistant:** natural-language event drafts, calendar questions, and proposed changes; no direct model-to-database access.
+- **Assistant (Retired by US-17):** previously handled natural-language drafts, questions, and proposals; module removed from active architecture.
 
 Within a module, use these layers only where useful:
 
 1. **Domain:** entities, value types, and business invariants. Keep framework-free.
-2. **Application:** use cases/commands/queries and ports (repositories, clock, AI, push, transaction boundary).
-3. **Infrastructure:** database repositories, password hashing, AI and Web Push adapters, in-process reminder scheduler.
+2. **Application:** use cases/commands/queries and ports (repositories, clock, push, transaction boundary).
+3. **Infrastructure:** database repositories, password hashing, Web Push adapters, in-process reminder scheduler. **Retired by US-17:** AI ports/adapters.
 4. **Delivery:** HTTP controllers, request/response schemas, authentication middleware, and event stream endpoints.
 
 Keep this as one deployable NestJS process. The reminder scheduler is a Nest provider/module that periodically claims due rows from SQLite and sends push notifications. It must not use per-event in-memory timers; a process restart should recover work from durable reminder rows. Avoid a second process against the same SQLite file: it adds deployment and locking complexity without MVP value.
@@ -73,13 +72,14 @@ src/
     auth/
     calendar/
     events/
-    assistant/
     notifications/
   shared/
     ui/                 # reusable primitives and composed components
     api/                # typed HTTP client and response schemas
     lib/                # formatting, date/time helpers
 ```
+
+> **Retired by US-17:** `features/assistant/` and assistant API client.
 
 Within `shared/ui`, Atomic Design labels can help describe reusable visual complexity if the team finds them useful. Keep domain behavior in feature-level hooks/services, not in generic UI atoms. Avoid introducing global state until concrete cross-feature state requires it; server-owned calendar data should have a clear cache and invalidation strategy.
 
@@ -99,7 +99,7 @@ Candidate entities:
 - `RecurringEvent` and `RecurringOccurrence`: weekly rule plus persisted exceptions; normal occurrences are expanded on read ([ADR 0011](../decisions/0011-weekly-recurrence.md)).
 - `PushSubscription`: user/session association, endpoint, cryptographic keys, and last-seen/expiration metadata.
 - `ReminderDelivery`: event, reminder offset, due instant, status, attempt count, and idempotency key.
-- `AssistantProposal`: user, action, target event/version, proposed fields, status, and expiry until user confirmation.
+- `AssistantProposal` (Retired by US-17): previously stored AI proposal state; removed with the assistant.
 
 The user decided that events are fixed instants displayed in each viewer's local time zone, while the creating device's IANA time zone is kept as provenance. See [ADR 0004](../decisions/0004-event-time-zone.md). The client converts local date/time input to an ISO instant with an explicit offset; the API stores and queries the instant in UTC. Daylight-saving ambiguous/nonexistent input times are resolved by the browser's `Date` conversion in the MVP. Calendar ranges are half-open intervals, and the week starts on Monday. Weekly recurrence adds a rule plus exception rows and expands occurrences on read, as recorded in [ADR 0011](../decisions/0011-weekly-recurrence.md).
 
@@ -112,8 +112,9 @@ Candidate endpoint groups:
 - `/api/auth/signup`, `/api/auth/login`, `/api/auth/logout`
 - `/api/events` and `/api/events/:eventId`
 - `/api/push-subscriptions`
-- `/api/assistant/drafts`, `/api/assistant/questions`, `/api/assistant/proposals/:id/confirm`
 - `/api/changes` for server-sent events (SSE), if the product expects connected devices to update immediately
+
+**Retired by US-17:** `/api/assistant/*`, including `/api/assistant/interpret`.
 
 For multi-device consistency, every mutation is committed in the database first. Connected clients can receive an SSE invalidation event and refetch the affected calendar range. If near-real-time updates are not required, refetch on app focus and after local mutations is simpler; confirm latency expectations before choosing. PWA push notifications are separate from SSE: SSE updates an open app, while Web Push can notify a subscribed installation when it is closed, subject to platform support and permission.
 
@@ -135,22 +136,14 @@ Delivery is at-least-once in rare crash windows (for example, the process can st
 
 If an event is created or edited after one or both reminder times have passed, define whether past reminders are skipped; recommended MVP behavior is to schedule only future reminders. Delivery remains best-effort: subscriptions expire, users can revoke permission, and browsers/platforms differ. Surface permission and delivery state clearly; do not claim guaranteed delivery. For recurring series, reminder rows are generated inside a rolling 48-hour horizon and refreshed by the same scheduler; see [ADR 0011](../decisions/0011-weekly-recurrence.md).
 
-## AI flows and boundaries
+## AI flows and boundaries (Retired by US-17)
 
-Put AI behind an application port so provider requests are isolated and replaceable. The provider adapter must not receive unrestricted database access or user sessions.
-
-- **Natural-language event creation:** provide current local date/time and IANA time zone as explicit context; request structured title/date/time output; validate schema and domain rules; show a draft; save only after explicit confirmation.
-- **Calendar questions:** query only the authenticated user's requested date range in application code, then send the minimum relevant event data to the model. Prefer deterministic answers for simple date/range lookups; use the model to interpret the question and phrase results. Clearly handle no results and ambiguous ranges.
-- **Edit/delete proposals:** resolve target events in application code; create a proposal bound to the user and current event version; show a diff/preview; on confirmation, re-check authorization and version before applying. The model never executes mutations directly.
-- Treat prompts, model output, event titles, and retrieved text as untrusted. Validate structured output and constrain tools to explicit use cases. Do not include passwords, session tokens, or unrelated event data in AI requests.
-- Record outcome metadata for evaluation (request type, validation result, user confirmed/rejected, latency/error) while minimizing retained personal event content.
-
-Do not choose a provider, model, prompt orchestration framework, or retrieval system before evaluating cost, latency, data handling, and structured-output capabilities against representative scenarios. No vector database or RAG system is justified by the current MVP scope.
+The assistant and AI-assisted calendar flows were removed from the product on 2026-11-28. Historical decisions are preserved in [ADR 0009](../decisions/0009-assistant-contract.md) and [ADR 0010](../decisions/0010-local-assistant.md). The active product uses manual event flows; recurrence, reminders, versioning, and cross-device sync remain unchanged.
 
 ## CQRS, SOLID, and complexity
 
-- **CQRS:** Do not adopt full CQRS, event sourcing, or separate read/write models for this CRUD calendar. Keep explicit application commands and queries where that improves readability (for example, `CreateEvent`, `GetCalendarRange`, `DraftAssistantChange`). A separate read model is not needed now.
-- **SOLID:** Apply dependency inversion at external boundaries (database, AI, push, clock) and keep modules cohesive. Avoid an interface for every class or a generic repository framework without a clear substitution/testing benefit.
+- **CQRS:** Do not adopt full CQRS, event sourcing, or separate read/write models for this CRUD calendar. Keep explicit application commands and queries where that improves readability (for example, `CreateEvent`, `GetCalendarRange`). A separate read model is not needed now.
+- **SOLID:** Apply dependency inversion at external boundaries (database, push, clock) and keep modules cohesive. Avoid an interface for every class or a generic repository framework without a clear substitution/testing benefit. **Retired by US-17:** AI boundary.
 - **Clean Architecture:** Use it to protect domain rules from infrastructure, but keep the project a modular monolith. Thin feature modules and clear use cases are a better portfolio signal than many layers with no behavior.
 - **Atomic Design:** Use only as a UI collaboration vocabulary where helpful; organize the application by feature to keep calendar workflows together.
 
@@ -158,12 +151,13 @@ Do not choose a provider, model, prompt orchestration framework, or retrieval sy
 
 - SQLite driver adapter and migration workflow details.
 - Hosting/deployment provider; it must supply an always-on process, persistent disk, and backup path.
-- AI provider/model and how representative quality examples will be evaluated.
 - Web Push provider configuration, browser support matrix, and notification permission-denied UX.
 - Portability of browser-specific daylight-saving input normalization across devices.
 - The user-selected session behavior is no automatic expiry with independent logout per device. Any proposed change to expiry behavior needs a product decision; the mechanism for secure persistence still requires architecture review.
 - Whether synchronization must be immediate (SSE) or can refresh on app focus.
 - Username normalization, length, allowed characters, and rate limits.
+
+**Retired by US-17:** AI provider/model selection and AI quality evaluation.
 
 ## Architecture Decision Records
 
@@ -175,4 +169,9 @@ The user-selected backend framework and database are recorded in:
 - [`0004-event-time-zone.md`](../decisions/0004-event-time-zone.md) for the selected event instant and viewer time-zone display rule.
 - [`0011-weekly-recurrence.md`](../decisions/0011-weekly-recurrence.md) for rule expansion, occurrence exceptions, DST adjustment, reminder horizon, and two-level versioning.
 
-Create further ADRs if implementation requires a decision on sessions, time-zone semantics, push/synchronization, or the AI provider.
+Historical/retired by US-17:
+
+- [`0009-assistant-contract.md`](../decisions/0009-assistant-contract.md)
+- [`0010-local-assistant.md`](../decisions/0010-local-assistant.md)
+
+Create further ADRs if implementation requires a decision on sessions, time-zone semantics, push/synchronization, or other future boundaries.

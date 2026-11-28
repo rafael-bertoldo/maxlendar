@@ -6,7 +6,7 @@
 
 ## Context
 
-The maxlendar MVP is a small AI-first calendar with authentication, event management, reminders, push subscriptions, and assistant interactions. The user chose Node.js for the backend and asked for a solid, modular architecture informed by Clean Architecture and SOLID, without adopting CQRS unless it provides concrete value.
+The maxlendar MVP started as a small AI-first calendar with authentication, event management, reminders, push subscriptions, and assistant interactions. US-17 (2026-11-28) removed the assistant from the product and active architecture; this ADR remains valid for the NestJS backend choice. The user chose Node.js for the backend and asked for a solid, modular architecture informed by Clean Architecture and SOLID, without adopting CQRS unless it provides concrete value.
 
 ## Decision
 

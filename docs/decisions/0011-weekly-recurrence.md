@@ -3,11 +3,13 @@
 - **Status:** Accepted
 - **Date:** 2026-11-28
 - **Decision owner:** User for product scope; Architect for technical design
-- **Related:** [US-16](../product-backlog.md), [ADR 0004](0004-event-time-zone.md), [ADR 0009](0009-assistant-contract.md)
+- **Related:** [US-16](../product-backlog.md), [ADR 0004](0004-event-time-zone.md), [ADR 0009](0009-assistant-contract.md) (historical; superseded by [US-17](../product-backlog.md))
+
+> **US-17 update (2026-11-28):** The assistant was removed from the application. Recurrence, shared local-time handling, reminders, and scope-based edit/delete remain active. Assistant-specific references in this ADR are marked as historical/retired.
 
 ## Context
 
-US-16 validated weekly recurrence without an end date, starting at the first future occurrence that matches the rule. Editing or deleting must explicitly target either one occurrence or the whole series; a single occurrence is an editable exception. Standard 10-minute and 1-minute reminders must apply to every future occurrence, in the creator's local time zone, and existing optimistic concurrency (`409 VERSION_CONFLICT`) must remain meaningful.
+US-16 validated weekly recurrence without an end date, starting at the first future occurrence that matches the rule. Editing or deleting must explicitly target either one occurrence or the whole series; a single occurrence is an editable exception. Standard 10-minute and 1-minute reminders must apply to every future occurrence, in the creator's local time zone, and existing optimistic concurrency (`409 VERSION_CONFLICT`) must remain meaningful. Assistant-related flows mentioned in the original US-16 context are retired by US-17; recurrence decisions remain valid.
 
 Three options were considered:
 
@@ -27,16 +29,16 @@ Adopt option 2.
 
 ### Occurrence expansion and time
 
-- A shared domain helper resolves a local wall-clock time in an IANA zone; the assistant interpreter and the recurrence expander use the same helper.
+- A shared domain helper resolves a local wall-clock time in an IANA zone; the recurrence expander uses it. **Retired by US-17:** the assistant interpreter previously used the same helper.
 - For an ambiguous local time, use the first valid instant. For a nonexistent local time, move forward minute by minute until a valid instant exists on the same local date; if none exists, skip that occurrence and record the limitation in the UI/QA evidence.
 - Convert each series rule to UTC instants only for the requested calendar range, skipping local dates before `startDate`. Ranges remain half-open (`from` inclusive, `to` exclusive) and sorted by instant, then id.
-- Target resolution for assistant edits/deletions groups generated occurrences of the same series into one candidate; distinct one-off events, exceptions, and different series still require disambiguation.
+- **Retired by US-17:** Target resolution for assistant edits/deletions previously grouped generated occurrences of the same series into one candidate; distinct one-off events, exceptions, and different series still required disambiguation. Manual flows remain unaffected.
 - `ListEvents` merges one-off rows, generated occurrences, and exception overrides. Each returned occurrence carries `id`, `title`, `startsAt`, `timeZone`, `version`, `source`, `seriesId?`, `occurrenceKey?`, and `isException?`.
 
 ### Mutations and concurrency
 
 - `POST /api/events` accepts an optional `recurrence` object with `frequency: "weekly"` and `byWeekday: number[]` containing exactly one weekday (`0`–`6`). Multiple weekdays in one rule require separate series and are rejected in this increment with `UNSUPPORTED_RECURRENCE`, as are any other cadence or an end date.
-- `AssistantDraft` gains the same optional `recurrence`. Confirmation still goes through the existing event endpoints, preserving ADR 0009: the assistant never writes directly.
+- **Retired by US-17:** `AssistantDraft` previously gained the same optional `recurrence`; confirmation went through the existing event endpoints, preserving ADR 0009.
 - `PATCH` and `DELETE /api/events/:id` accept `scope: "occurrence" | "series"` and `version`.
   - `scope: "series"` targets the `RecurringEvent` row and its version.
   - `scope: "occurrence"` targets a synthetic id or an exception row; editing a generated occurrence creates an exception, while editing an existing exception updates it.
@@ -54,6 +56,6 @@ Adopt option 2.
 - The calendar can display an endless weekly series without storing endless rows or reminders.
 - Reminders for distant weeks are created when they enter the 48-hour horizon; a scheduler outage longer than that window can miss them, which is consistent with the existing best-effort delivery limitation.
 - DST adjustments are deterministic and testable, but a shifted hour differs from the literal local time typed at creation; QA must cover an ambiguous and a nonexistent case.
-- Frontend, assistant, API, and reminder payload contracts all gain optional recurrence fields. The UI must show the rule in the review card and ask for the occurrence/series scope before every edit or deletion of a recurrent event.
+- Frontend, API, and reminder payload contracts gain optional recurrence fields. The UI must ask for the occurrence/series scope before every edit or deletion of a recurrent event. **Retired by US-17:** assistant review-card recurrence fields and assistant-driven scope selection.
 - Versioning has two levels (series and exception). Clients must send the correct version for the chosen scope; QA must cover a stale series version and a stale exception version.
 - Deferred: daily/monthly cadences, multiple weekdays in one rule, end dates, timezone changes on series edit, and occurrence-level permission rules.

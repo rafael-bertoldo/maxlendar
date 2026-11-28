@@ -13,6 +13,5 @@ import { EventsController } from "./delivery/events.controller";
   imports: [DatabaseModule, AuthModule, RemindersModule],
   controllers: [EventsController],
   providers: [CreateEvent, DeleteEvent, ListEvents, UpdateEvent, SessionGuard],
-  exports: [ListEvents],
 })
 export class EventsModule {}

@@ -1,16 +1,18 @@
 # maxlendar Product Brief
 
-**Status:** Discovery draft  
+**Status:** Discovery draft; updated by US-17 (2026-11-28) — assistant removed, product no longer described as AI-first in active scope
 **Audience:** Product, design, engineering, and QA  
-**Product:** AI-first, cross-device personal calendar
+**Product:** Cross-device personal calendar
 
 ## Product summary
 
-maxlendar is a simple calendar for creating and managing one-off events across web and mobile devices without repeated sign-in on the same device. A person creates or opens a calendar with a unique username and a simple password. Events can be managed manually or with an AI assistant that understands natural language, answers questions about the calendar, and prepares changes for the user's review.
+maxlendar is a simple calendar for creating and managing one-off events across web and mobile devices without repeated sign-in on the same device. A person creates or opens a calendar with a unique username and a simple password. Events are managed through manual calendar controls.
+
+> **US-17 (2026-11-28):** The AI assistant was removed from the active product. Historical AI-first discovery and ADRs 0009/0010 are preserved as superseded records.
 
 ## Problem and intended outcome
 
-The user wants to access the same calendar on different devices without repeated logins. They also want event reminders to arrive before an event, including when the app is closed, and a quick way to add or query events using natural language.
+The user wants to access the same calendar on different devices without repeated logins. They also want event reminders to arrive before an event, including when the app is closed, and clear manual flows to create, review, and manage events.
 
 ## Target user and project context
 
@@ -68,21 +70,17 @@ The user wants to access the same calendar on different devices without repeated
 - Interpret the event's date and time in the local time zone of the device used to create it.
 - The display behavior when the same calendar is opened from a device in a different time zone remains to be decided.
 
-### AI-first experience
+### AI-first experience (Retired by US-17)
 
-- Users can enter event details manually or describe an event in natural language, such as “Dentist tomorrow at 3 PM.”
-- The AI extracts the event title, date, and time and presents them for review. It must not save a proposed event without user confirmation.
-- Users can ask questions about their calendar, such as “What do I have tomorrow?” Answers should be grounded in the calendar's events.
-- Users can ask the AI to prepare event changes or deletions. The proposed change must be shown for review and confirmation before it is applied.
-- AI is intended to reduce friction in creating, understanding, and managing events. Manual calendar controls remain available.
+The assistant/natural-language experience was removed from the active product on 2026-11-28. Manual calendar controls are the supported interaction model. Historical records: [ADR 0009](decisions/0009-assistant-contract.md), [ADR 0010](decisions/0010-local-assistant.md), US-12 to US-15 (retired).
 
 ## Initial acceptance outcomes
 
 1. Signing up with an unused username creates a calendar; an existing username offers sign-in with its password or the option to choose another name.
 2. A user can create an event manually with a title, date, and time, then edit or delete it.
-3. A user can create an event from natural language, review the extracted fields, and confirm before it is saved.
-4. A user can ask about events in their calendar and receive an answer based on those events.
-5. A user can ask the AI to change or delete an event, review the proposed action, and confirm before it takes effect.
+3. *(Retired by US-17)* Natural-language event creation/review.
+4. *(Retired by US-17)* Assistant calendar questions.
+5. *(Retired by US-17)* AI-proposed change/delete confirmation.
 6. The same calendar changes appear across the user's devices.
 7. Day view is the default, with week and month views available.
 8. Each event has reminders scheduled 10 minutes and 1 minute before its time, subject to notification permission and platform availability.
@@ -92,7 +90,7 @@ The user wants to access the same calendar on different devices without repeated
 - The product is not intended for sensitive event data. A simple password with no complexity rules improves ease of use but requires a considered implementation for secure storage and authentication.
 - A session that does not expire automatically can remain usable by anyone with access to a signed-in device. Provide a clear sign-out action.
 - Push notification delivery depends on device/browser support and permission. The exact behavior when permission is denied, unavailable, or later revoked remains to be specified.
-- AI output may be incomplete or wrong. User review and confirmation are required before any AI-proposed create, edit, or delete operation is saved.
+- **Retired by US-17:** AI output correctness/confirmation risks for assistant flows.
 - The timezone behavior across devices in different time zones remains open.
 
 ## Open questions for design and implementation planning
@@ -101,8 +99,8 @@ The user wants to access the same calendar on different devices without repeated
 - What should the experience do when push permission is denied or the PWA/browser cannot deliver notifications?
 - What username format, length, normalization, and reserved names should be allowed?
 - Which session storage approach meets the persistent-login requirement while limiting exposure? The user suggested `localStorage`; this requires architecture review.
-- What confirmation and disambiguation behavior should the AI use for ambiguous dates, event references, or requests that match multiple events?
-- What representative examples and quality criteria will be used to evaluate AI-created events and calendar answers?
+- ~~What confirmation and disambiguation behavior should the AI use for ambiguous dates, event references, or requests that match multiple events?~~ Retired by US-17.
+- ~~What representative examples and quality criteria will be used to evaluate AI-created events and calendar answers?~~ Retired by US-17.
 - What behavior is expected when the same event is edited from multiple devices at nearly the same time?
 
 ## Out of scope for the MVP

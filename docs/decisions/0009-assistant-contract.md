@@ -1,7 +1,9 @@
 # ADR 0009: Confirmation-first assistant contract
 
-- **Status:** Accepted
+- **Status:** Superseded / Retired by [US-17](../product-backlog.md) (2026-11-28)
 - **Date:** 2026-11-26
+
+> **US-17 update (2026-11-28):** The assistant was removed from the application. This ADR is preserved as historical record of the confirmation-first contract used while US-12 to US-15 were active; it is no longer an active product/architecture decision.
 
 ## Context
 
