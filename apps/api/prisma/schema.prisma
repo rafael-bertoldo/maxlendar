@@ -58,6 +58,7 @@ model RecurringEvent {
   title       String
   weekday     Int
   localTime   String
+  startDate   String?
   timeZone    String
   version     Int                   @default(1)
   createdAt   DateTime              @default(now())

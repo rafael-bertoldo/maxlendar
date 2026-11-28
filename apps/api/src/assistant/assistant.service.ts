@@ -556,15 +556,24 @@ export class AssistantService {
       return targetTokens.every((token) => title.includes(token));
     });
 
-    if (matches.length === 0) {
-      void timeZone;
+    const uniqueMatches = new Map<string, CalendarEventDto>();
+    for (const event of matches) {
+      const key = event.seriesId && !event.isException ? event.seriesId : event.id;
+      if (!uniqueMatches.has(key)) uniqueMatches.set(key, event);
+    }
+    const candidates = [...uniqueMatches.values()];
+
+    if (candidates.length === 0) {
       return clarification("Não encontrei um evento com esse título nos próximos 14 dias. Você pode dizer outro título?");
     }
-    if (matches.length > 1) {
-      const titles = matches.slice(0, 4).map((event) => `“${event.title}”`).join(", ");
-      return clarification(`Encontrei mais de um evento possível: ${titles}. Especifique melhor o título.`);
+    if (candidates.length > 1) {
+      const titles = candidates
+        .slice(0, 4)
+        .map((event) => `“${event.title}” (${formatLocal(event.startsAt, timeZone)})`)
+        .join(", ");
+      return clarification(`Encontrei mais de um evento possível: ${titles}. Especifique melhor o título ou a data.`);
     }
 
-    return { target: toAssistantTarget(matches[0]) };
+    return { target: toAssistantTarget(candidates[0]) };
   }
 }

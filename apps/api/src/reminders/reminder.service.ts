@@ -120,6 +120,7 @@ export class ReminderService {
         title: true,
         weekday: true,
         localTime: true,
+        startDate: true,
         timeZone: true,
         version: true,
         deletedAt: true,

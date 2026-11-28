@@ -81,7 +81,7 @@ export class CreateEvent {
     const local = partsInZone(startsAt, creationTimeZone);
     const localTime = readLocalTime(startsAt, creationTimeZone);
     const now = new Date();
-    const created: Array<{ seriesId: string; weekday: number; startsAt: Date }> = [];
+    const created: Array<{ seriesId: string; weekday: number; startsAt: Date; occurrenceKey: string }> = [];
 
     for (const weekday of recurrence.byWeekday) {
       const first = firstFutureOccurrence(
@@ -94,6 +94,7 @@ export class CreateEvent {
       if (!first) {
         throw validationError("startsAt", "The recurrence has no valid future occurrence.");
       }
+      const occurrenceKey = localDateKey(partsInZone(first, creationTimeZone));
 
       const series = await this.prisma.recurringEvent.create({
         data: {
@@ -101,11 +102,12 @@ export class CreateEvent {
           title,
           weekday,
           localTime,
+          startDate: occurrenceKey,
           timeZone: creationTimeZone,
         },
         select: { id: true },
       });
-      created.push({ seriesId: series.id, weekday, startsAt: first });
+      created.push({ seriesId: series.id, weekday, startsAt: first, occurrenceKey });
     }
 
     for (const series of created) {
@@ -117,7 +119,7 @@ export class CreateEvent {
         left.startsAt.getTime() - right.startsAt.getTime() || left.seriesId.localeCompare(right.seriesId),
     );
     const first = created[0];
-    const occurrenceKey = localDateKey(partsInZone(first.startsAt, creationTimeZone));
+    const occurrenceKey = first.occurrenceKey;
 
     return toRecurringEventDto(
       {

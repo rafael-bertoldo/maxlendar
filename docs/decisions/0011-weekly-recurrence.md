@@ -21,7 +21,7 @@ Adopt option 2.
 
 ### Data model
 
-- Add `RecurringEvent`: `id`, `calendarId`, `title`, `weekday` (`0`–`6`, Sunday to Saturday), `localTime` (`HH:mm` in the creator's zone), `timeZone` (IANA), `version`, `createdAt`, `updatedAt`, and `deletedAt` for cancellation.
+- Add `RecurringEvent`: `id`, `calendarId`, `title`, `weekday` (`0`–`6`, Sunday to Saturday), `localTime` (`HH:mm` in the creator's zone), `startDate` (`YYYY-MM-DD` of the first future occurrence), `timeZone` (IANA), `version`, `createdAt`, `updatedAt`, and `deletedAt` for cancellation.
 - Add `RecurringOccurrence` only for exceptions: `id`, `seriesId`, `localDate` (`YYYY-MM-DD` in the series zone), optional `startsAt`, optional `title`, `deleted`, `version`. Enforce uniqueness on `(seriesId, localDate)`. A normal occurrence has no row.
 - Keep `CalendarEvent` unchanged for one-off events. A generated occurrence is identified by the stable synthetic id `${seriesId}@${localDate}`.
 
@@ -29,7 +29,8 @@ Adopt option 2.
 
 - A shared domain helper resolves a local wall-clock time in an IANA zone; the assistant interpreter and the recurrence expander use the same helper.
 - For an ambiguous local time, use the first valid instant. For a nonexistent local time, move forward minute by minute until a valid instant exists on the same local date; if none exists, skip that occurrence and record the limitation in the UI/QA evidence.
-- Convert each series rule to UTC instants only for the requested calendar range. Ranges remain half-open (`from` inclusive, `to` exclusive) and sorted by instant, then id.
+- Convert each series rule to UTC instants only for the requested calendar range, skipping local dates before `startDate`. Ranges remain half-open (`from` inclusive, `to` exclusive) and sorted by instant, then id.
+- Target resolution for assistant edits/deletions groups generated occurrences of the same series into one candidate; distinct one-off events, exceptions, and different series still require disambiguation.
 - `ListEvents` merges one-off rows, generated occurrences, and exception overrides. Each returned occurrence carries `id`, `title`, `startsAt`, `timeZone`, `version`, `source`, `seriesId?`, `occurrenceKey?`, and `isException?`.
 
 ### Mutations and concurrency

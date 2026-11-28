@@ -42,6 +42,7 @@ export class ListEvents {
               title: true,
               weekday: true,
               localTime: true,
+              startDate: true,
               timeZone: true,
               version: true,
               occurrences: {
@@ -75,6 +76,7 @@ export class ListEvents {
           title: series.title,
           weekday: series.weekday,
           localTime: series.localTime,
+          startDate: series.startDate,
           timeZone: series.timeZone,
           version: series.version,
         },

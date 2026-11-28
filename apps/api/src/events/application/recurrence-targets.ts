@@ -7,6 +7,7 @@ export interface SeriesRecord {
   title: string;
   weekday: number;
   localTime: string;
+  startDate: string | null;
   timeZone: string;
   version: number;
   deletedAt: Date | null;
@@ -38,6 +39,7 @@ const SERIES_SELECT = {
   title: true,
   weekday: true,
   localTime: true,
+  startDate: true,
   timeZone: true,
   version: true,
   deletedAt: true,

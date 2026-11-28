@@ -16,6 +16,7 @@ export interface RecurrenceSeries {
   title: string;
   weekday: number;
   localTime: string;
+  startDate: string | null;
   timeZone: string;
   version: number;
 }
@@ -247,6 +248,10 @@ export function expandSeriesOccurrences(
   while (compareLocalDate(local, lastDate) <= 0) {
     if (weekdayOfLocalDate(local) === series.weekday) {
       const occurrenceKey = localDateKey(local);
+      if (series.startDate && occurrenceKey < series.startDate) {
+        local = addDays(local, 1);
+        continue;
+      }
       const override = overridesByDate.get(occurrenceKey);
       if (override?.deleted) {
         local = addDays(local, 1);
